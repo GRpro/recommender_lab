@@ -1,0 +1,111 @@
+version: '3'
+services:
+
+  # TODO run in distributed mode
+  hdfs:
+    build: ./img
+    expose:
+      - "9000"
+    ports:
+      - "50070:50070"
+    command: >
+      bash -c "service ssh start
+      && hadoop namenode -format -force
+      && /usr/local/hadoop/sbin/start-dfs.sh
+      && tail -f /usr/local/hadoop/logs/*"
+
+  spark-slave:
+    build: ./img
+    depends_on:
+      - spark-master
+    links:
+      - hdfs
+    ports:
+      - "8081"
+    environment:
+      - SPARK_WORKER_PORT=7999
+      - SPARK_WORKER_WEBUI_PORT=8081
+    command: >
+      bash -c "service ssh start
+      && /usr/local/spark/sbin/start-slave.sh spark://spark-master:7071
+      && tail -f /usr/local/spark/logs/*"
+
+  spark-master:
+    build: ./img
+    ports:
+      - "8080:8080"
+    links:
+      - hdfs
+      - elasticsearch
+    environment:
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7071
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop # for mahout
+    command: >
+      bash -c "service ssh start
+      && /usr/local/spark/sbin/start-master.sh
+      && tail -f /usr/local/spark/logs/*"
+
+
+#      /usr/local/spark-2.3.2-bin-hadoop2.7/bin/spark-submit \
+#               --class org.apache.spark.examples.SparkPi \
+#               --master spark://spark-master:7071 \
+#               --executor-memory 1G \
+#               --total-executor-cores 2 \
+#               /usr/local/spark-2.3.2-bin-hadoop2.7/examples/jars/spark-examples_2.11-2.3.2.jar \
+#               1000
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
+    container_name: elasticsearch
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "xpack.graph.enabled=false"
+      - "xpack.ml.enabled=false"
+      - "xpack.monitoring.enabled=false"
+      - "xpack.security.enabled=false"
+      - "xpack.watcher.enabled=false"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+#    volumes:
+#      - esdata1:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - esnet
+
+  elasticsearch2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
+    container_name: elasticsearch2
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "discovery.zen.ping.unicast.hosts=elasticsearch"
+      - "xpack.graph.enabled=false"
+      - "xpack.ml.enabled=false"
+      - "xpack.monitoring.enabled=false"
+      - "xpack.security.enabled=false"
+      - "xpack.watcher.enabled=false"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+#    volumes:
+#      - esdata2:/usr/share/elasticsearch/data
+    networks:
+      - esnet
+
+#volumes:
+#  esdata1:
+#    driver: local
+#  esdata2:
+#    driver: local
+
+networks:
+  esnet:
