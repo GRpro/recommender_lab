@@ -1,45 +1,83 @@
 package lab.reco.batch
 
+import org.apache.commons.cli.{BasicParser, CommandLine, HelpFormatter, Options, Option => CliOption}
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.{Row, SparkSession}
 
 object ExportModelJob {
 
-  trait Foo {
-    type Bar
-    def bar: Bar
-  }
-
-  class A extends Foo {
-    override type Bar = String
-    override def bar: Bar = "a"
-  }
-
-  class B extends Foo {
-    override type Bar = Int
-    override def bar: Bar = 1
-  }
-
-  def foo(f: Foo): f.Bar = f.bar
-
   def main(args: Array[String]): Unit = {
+    val options = new Options()
+    options.addOption(new CliOption("eit", "es-index-type", true, "ElasticSearch 'index/type'"))
+    options.addOption(new CliOption("eu", "es-url", true, "ElasticSearch url"))
+    options.addOption(new CliOption("ep", "es-port", true, "ElasticSearch port"))
+    options.addOption(new CliOption("eun", "es-username", true, "ElasticSearch username"))
+    options.addOption(new CliOption("eup", "es-password", true, "ElasticSearch password"))
+    options.addOption(new CliOption("i", "input", true, "Input path"))
 
-    trait Functor[F[_]]
-    type F1 = Functor[Option] // OK
-    type F2 = Functor[List]   // OK
-    type IntKeyMap[A] = Map[Int, A]
+    def printUsage =
+      new HelpFormatter()
+        .printHelp("ImportEventsJob", "Import indexed events from ElasticSearch", options, "", true)
 
-    type F3 = Functor[IntKeyMap] // OK
-    type F4 = Functor[({ type T[A] = Map[Int, A] })#T]
+    val cmdLine: CommandLine = try {
+      new BasicParser().parse(options, args)
+    } catch {
+      case ex: Exception =>
+        ex.printStackTrace()
+        printUsage
+        sys.exit(1)
+    }
 
-    val a = new A
-    val b = new B
+    if (cmdLine.hasOption('h')) {
+      printUsage
+      sys.exit(0)
+    }
 
-    def foo1[A[_, _], B](functor: Functor[({ type C[K] = A[B, K] })#C]): Unit = ()
+    val esIndexType: String = cmdLine.getOptionValue("eit")
+    val esUrl: String = cmdLine.getOptionValue("eu")
+    val esPort: String = cmdLine.getOptionValue("ep")
+    val esUsername: String = cmdLine.getOptionValue("eun")
+    val esPassword: String = cmdLine.getOptionValue("eup")
+    val in: String = cmdLine.getOptionValue("i")
 
-    println(foo(a))
-    println(foo(b))
+    val sparkConf = new SparkConf()
+      .setMaster("local[*]")
+      .setAppName("Spark dataset analyzer")
+
+    implicit val spark = SparkSession.builder.config(sparkConf).getOrCreate()
+    import spark.implicits._
+
+    spark.sparkContext.hadoopConfiguration.set("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
+    spark.sparkContext.hadoopConfiguration.set("parquet.enable.summary-metadata", "false")
+
+    val reader = spark.read.format("text")
+
+    val df = reader.load(in).map {
+      case Row(text: String) =>
+        val splitted = text.split("\t")
+        val objectId = splitted(0)
+        val splittedRecommendations = splitted(1).split(" ").map { rec =>
+          val sp = rec.split(":")
+          (sp(0), sp(1).toDouble)
+        }.filterNot { _._1 == objectId }
+
+        val recommendations = splittedRecommendations.map { _._1 }
+        val preferences = splittedRecommendations.map { _._2 }
+        (objectId, recommendations, preferences)
+    }.toDF("objectId", "recommendations", "preferences")
+
+    df.write
+      .format("org.elasticsearch.spark.sql")
+      .option("es.index.auto.create", "true")
+      .option("es.nodes.wan.only", "true")
+      .option("es.port", esPort)
+      .option("es.net.http.auth.user", esUsername)
+      .option("es.net.http.auth.pass", esPassword)
+      .option("es.net.ssl", "false")
+      .mode("overwrite")
+      .option("es.nodes", esUrl)
+      .save(esIndexType)
+
+    spark.stop()
   }
-
-
-
-
 }

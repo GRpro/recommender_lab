@@ -35,3 +35,4 @@ lazy val event_manager = project.in(file("event_manager"))
 
 lazy val batch_jobs = project.in(file("batch_jobs"))
   .settings(commonSettings: _*)
+  .dependsOn(common)

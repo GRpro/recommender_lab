@@ -4,9 +4,13 @@ services:
   # TODO run in distributed mode
   hdfs:
     build: ./img
+    networks:
+      - lab
     expose:
       - "9000"
     ports:
+    # TODO remove exposing 9000 port
+      - "9000:9000"
       - "50070:50070"
     command: >
       bash -c "service ssh start
@@ -20,8 +24,10 @@ services:
       - spark-master
     links:
       - hdfs
+    networks:
+      - lab
     ports:
-      - "8081"
+      - "8081:8081"
     environment:
       - SPARK_WORKER_PORT=7999
       - SPARK_WORKER_WEBUI_PORT=8081
@@ -37,6 +43,8 @@ services:
     links:
       - hdfs
       - elasticsearch
+    networks:
+      - lab
     environment:
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_PORT=7071
@@ -46,15 +54,6 @@ services:
       bash -c "service ssh start
       && /usr/local/spark/sbin/start-master.sh
       && tail -f /usr/local/spark/logs/*"
-
-
-#      /usr/local/spark-2.3.2-bin-hadoop2.7/bin/spark-submit \
-#               --class org.apache.spark.examples.SparkPi \
-#               --master spark://spark-master:7071 \
-#               --executor-memory 1G \
-#               --total-executor-cores 2 \
-#               /usr/local/spark-2.3.2-bin-hadoop2.7/examples/jars/spark-examples_2.11-2.3.2.jar \
-#               1000
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
@@ -72,12 +71,14 @@ services:
       memlock:
         soft: -1
         hard: -1
-#    volumes:
-#      - esdata1:/usr/share/elasticsearch/data
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    expose:
+      - "9200"
     ports:
-      - 9200:9200
+      - "9200:9200"
     networks:
-      - esnet
+      - lab
 
   elasticsearch2:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
@@ -92,20 +93,22 @@ services:
       - "xpack.monitoring.enabled=false"
       - "xpack.security.enabled=false"
       - "xpack.watcher.enabled=false"
+    expose:
+      - "9200"
     ulimits:
       memlock:
         soft: -1
         hard: -1
-#    volumes:
-#      - esdata2:/usr/share/elasticsearch/data
+    volumes:
+      - esdata2:/usr/share/elasticsearch/data
     networks:
-      - esnet
+      - lab
 
-#volumes:
-#  esdata1:
-#    driver: local
-#  esdata2:
-#    driver: local
+volumes:
+  esdata1:
+    driver: local
+  esdata2:
+    driver: local
 
 networks:
-  esnet:
+  lab:

@@ -1,34 +1,29 @@
 package lab.reco.batch
 
-import org.apache.commons.cli.{CommandLine, DefaultParser, HelpFormatter, Options, ParseException, Option => CliOption}
-import org.apache.spark.{SparkConf, SparkContext}
-import org.elasticsearch.spark._
+import lab.reco.common.Protocol.Event._
+import org.apache.commons.cli.{BasicParser, CommandLine, HelpFormatter, Options, Option => CliOption}
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.SparkSession
 
 object ImportEventsJob {
 
   def main(args: Array[String]): Unit = {
     val options = new Options()
-    options.addOption(CliOption.builder("eit").longOpt("es-index-type").hasArg().required()
-      .desc("ElasticSearch 'index/type'").build())
-    options.addOption(CliOption.builder("eu").longOpt("es-url").hasArg().required()
-      .desc("ElasticSearch url").build())
-    options.addOption(CliOption.builder("ep").longOpt("es-port").hasArg().required()
-      .desc("ElasticSearch port").build())
-    options.addOption(CliOption.builder("eun").longOpt("es-username").hasArg().required()
-      .desc("ElasticSearch url").build())
-    options.addOption(CliOption.builder("eup").longOpt("es-password").hasArg().required()
-      .desc("ElasticSearch url").build())
-    options.addOption(CliOption.builder("o").longOpt("output").hasArg().required()
-      .desc("Export path").build())
+    options.addOption(new CliOption("eit", "es-index-type", true, "ElasticSearch 'index/type'"))
+    options.addOption(new CliOption("eu", "es-url", true, "ElasticSearch url"))
+    options.addOption(new CliOption("ep", "es-port", true, "ElasticSearch port"))
+    options.addOption(new CliOption("eun", "es-username", true, "ElasticSearch username"))
+    options.addOption(new CliOption("eup", "es-password", true, "ElasticSearch password"))
+    options.addOption(new CliOption("o", "output", true, "Export path"))
 
     def printUsage =
       new HelpFormatter()
         .printHelp("ImportEventsJob", "Import indexed events from ElasticSearch", options, "", true)
 
     val cmdLine: CommandLine = try {
-      new DefaultParser().parse(options, args)
+      new BasicParser().parse(options, args)
     } catch {
-      case ex: ParseException =>
+      case ex: Exception =>
         ex.printStackTrace()
         printUsage
         sys.exit(1)
@@ -50,13 +45,12 @@ object ImportEventsJob {
       .setMaster("local[*]")
       .setAppName("Spark dataset analyzer")
 
-    implicit val spark = new SparkContext(sparkConf)
-    val sqlContext = new org.apache.spark.sql.SQLContext(spark)
+    implicit val spark = SparkSession.builder.config(sparkConf).getOrCreate()
 
-    spark.hadoopConfiguration.set("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
-    spark.hadoopConfiguration.set("parquet.enable.summary-metadata", "false")
+    spark.sparkContext.hadoopConfiguration.set("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
+    spark.sparkContext.hadoopConfiguration.set("parquet.enable.summary-metadata", "false")
 
-    val reader = sqlContext.read
+    val reader = spark.read
       .format("org.elasticsearch.spark.sql")
       .option("es.index.auto.create", "true")
       .option("es.nodes.wan.only", "true")
@@ -64,13 +58,13 @@ object ImportEventsJob {
       .option("es.net.http.auth.user", esUsername)
       .option("es.net.http.auth.pass", esPassword)
       .option("es.net.ssl", "false")
-    .option("es.nodes", esUrl)
+      .option("es.nodes", esUrl)
 
-    val df = reader.load(esIndexType)
+    val df = reader.load(esIndexType).select(subjectIdField, indicatorField, objectIdField)
 
-    df.show(1000, false)
     df.write.format("com.databricks.spark.csv")
       .option("header", "true")
+      .mode("overwrite")
       .save(out)
 
     spark.stop()

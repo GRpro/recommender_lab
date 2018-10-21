@@ -13,6 +13,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
 import org.elasticsearch.client.RestClientBuilder.{HttpClientConfigCallback, RequestConfigCallback}
 import lab.reco.common.util.Implicits._
+import lab.reco.common.Protocol.Event._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -50,10 +51,10 @@ class EventManagerImpl(
 
   private def prepareQuery(event: Event, defaultTimestamp: => Long): IndexRequest =
     indexInto(indexName, typeName) fieldValues(
-      SimpleFieldValue("subjectId", event.subjectId),
-      SimpleFieldValue("objectId", event.objectId),
-      SimpleFieldValue("timestamp", event.timestamp.getOrElse(defaultTimestamp)),
-      SimpleFieldValue("indicator", event.indicator)
+      SimpleFieldValue(subjectIdField, event.subjectId),
+      SimpleFieldValue(objectIdField, event.objectId),
+      SimpleFieldValue(timestampField, event.timestamp.getOrElse(defaultTimestamp)),
+      SimpleFieldValue(indicatorField, event.indicator)
     )
 
   override def storeEvent(sessionId: Option[String], event: Event): Future[String] = {
