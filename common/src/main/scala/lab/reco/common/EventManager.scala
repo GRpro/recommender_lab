@@ -19,6 +19,9 @@ object EventManager {
 
   def apply(esUsername: String,
             esPassword: String,
-            esClientUri: String)(implicit executionContext: ExecutionContext): EventManager =
-    new EventManagerImpl(esUsername, esPassword, esClientUri, IndexName, TypeName)
+            esClientUri: String)(implicit executionContext: ExecutionContext): EventManager = {
+    val esClient = ESClientProvider.createESClient(esUsername, esPassword, esClientUri)
+    new EventManagerImpl(esClient, IndexName, TypeName)
+  }
+
 }

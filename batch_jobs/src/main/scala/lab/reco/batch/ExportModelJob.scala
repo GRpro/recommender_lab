@@ -64,7 +64,7 @@ object ExportModelJob {
         val recommendations = splittedRecommendations.map { _._1 }
         val preferences = splittedRecommendations.map { _._2 }
         (objectId, recommendations, preferences)
-    }.toDF("objectId", "recommendations", "preferences")
+    }.toDF("objectId", "recommendations", "preferences").withColumn("id", $"objectId")
 
     df.write
       .format("org.elasticsearch.spark.sql")
@@ -74,6 +74,8 @@ object ExportModelJob {
       .option("es.net.http.auth.user", esUsername)
       .option("es.net.http.auth.pass", esPassword)
       .option("es.net.ssl", "false")
+      .option("es.mapping.id", "id")
+      .option("es.mapping.exclude", "id")
       .mode("overwrite")
       .option("es.nodes", esUrl)
       .save(esIndexType)

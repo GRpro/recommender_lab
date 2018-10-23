@@ -1,4 +1,4 @@
-package lab.reco.event.config
+package lab.reco.engine.config
 
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging

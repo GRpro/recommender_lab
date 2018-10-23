@@ -3,50 +3,21 @@ package lab.reco.common
 import java.util.UUID
 
 import com.sksamuel.elastic4s.SimpleFieldValue
+import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ElasticClient, ElasticProperties}
 import com.sksamuel.elastic4s.indexes.IndexRequest
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
-import org.apache.http.client.config.RequestConfig
-import org.apache.http.impl.client.BasicCredentialsProvider
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
-import org.elasticsearch.client.RestClientBuilder.{HttpClientConfigCallback, RequestConfigCallback}
-import lab.reco.common.util.Implicits._
 import lab.reco.common.Protocol.Event._
+import lab.reco.common.util.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EventManagerImpl(
-                        esUsername: String,
-                        esPassword: String,
-                        esClientUri: String,
-                        indexName: String,
-                        typeName: String)(implicit executionContext: ExecutionContext) extends EventManager with LazyLogging {
-
-  private val ESClient: ElasticClient = {
-    val provider = {
-      val provider = new BasicCredentialsProvider
-      val credentials = new UsernamePasswordCredentials(
-        esUsername,
-        esPassword)
-      provider.setCredentials(AuthScope.ANY, credentials)
-      provider
-    }
-
-    ElasticClient(
-      ElasticProperties(esClientUri),
-      new RequestConfigCallback {
-        override def customizeRequestConfig(requestConfigBuilder: RequestConfig.Builder): RequestConfig.Builder =
-          requestConfigBuilder
-      }, new HttpClientConfigCallback {
-        override def customizeHttpClient(httpClientBuilder: HttpAsyncClientBuilder) =
-          httpClientBuilder.setDefaultCredentialsProvider(provider)
-      }
-    )
-  }
+class EventManagerImpl(esClient: ElasticClient,
+                       indexName: String,
+                       typeName: String)(implicit executionContext: ExecutionContext) extends EventManager with LazyLogging {
 
   private def generateSessionId: String = UUID.randomUUID().toString
+
   private def currentTime: Long = System.currentTimeMillis()
 
   private def prepareQuery(event: Event, defaultTimestamp: => Long): IndexRequest =
@@ -62,7 +33,7 @@ class EventManagerImpl(
 
     val query = prepareQuery(event, currentTime)
 
-    ESClient execute query map { result =>
+    esClient execute query map { result =>
       logger.info(s"indexing result [$result]")
       id
     } logFailure(logger, "indexing failed")
@@ -76,14 +47,14 @@ class EventManagerImpl(
       event.map(prepareQuery(_, time))
     }
 
-    ESClient execute query map { result =>
+    esClient execute query map { result =>
       logger.info(s"batch indexing result [$result]")
       id
     } logFailure(logger, "batch indexing failed")
   }
 
   override def clearAllEvents(): Future[Unit] = {
-    ESClient execute deleteIndex(indexName) map { result =>
+    esClient execute deleteIndex(indexName) map { result =>
       logger.info(s"delete index [$indexName] result [$result]")
     } logFailure(logger, s"delete index operation [$indexName] failed")
   }

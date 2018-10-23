@@ -1,24 +1,25 @@
-package lab.reco.event
+package lab.reco.engine
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import lab.reco.common.EventManager
-import lab.reco.event.api.Endpoints
-import lab.reco.event.config.ConfigStore
+import lab.reco.common.RecommendationManager
+import lab.reco.engine.api.Endpoints
+import lab.reco.engine.config.ConfigStore
 
 object WebServer {
-  def main(args: Array[String]) {
 
-    implicit val system = ActorSystem("event-manager")
+  def main(args: Array[String]): Unit = {
+
+    implicit val system = ActorSystem("recommendation-manager")
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
-    val eventManager: EventManager =
-      EventManager(ConfigStore.esUsername, ConfigStore.esPassword, ConfigStore.esClientUri)
+    val recommenderManager: RecommendationManager =
+      RecommendationManager(ConfigStore.esUsername, ConfigStore.esPassword, ConfigStore.esClientUri)
 
     val endpoints = new Endpoints {
-      override val manager: EventManager = eventManager
+      override val manager: RecommendationManager = recommenderManager
     }
 
     val bindingFuture = Http()
@@ -29,6 +30,5 @@ object WebServer {
         .flatMap(_.unbind()) // trigger unbinding from the port
         .onComplete(_ => system.terminate())
     }
-
   }
 }

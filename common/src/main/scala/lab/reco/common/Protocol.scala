@@ -8,4 +8,5 @@ object Protocol {
     final val timestampField: String = "timestamp"
     final val indicatorField: String = "indicator"
   }
+
 }

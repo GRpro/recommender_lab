@@ -38,7 +38,7 @@ docker exec -it dev_spark-master_1 bash -c "/usr/local/spark/bin/spark-submit \
 --total-executor-cores 2 \
 batch_jobs-assembly-0.1.jar \
 -i hdfs://hdfs:9000/itemsimilarity/cross-similarity-matrix \
--eit recommendation/cf \
+-eit recommendation/similarObjects \
 -ep 9200 \
 -eu elasticsearch \
 -eun elastic \
