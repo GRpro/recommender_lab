@@ -1,7 +1,5 @@
 package lab.reco.common
 
-import java.util.UUID
-
 import com.sksamuel.elastic4s.SimpleFieldValue
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
@@ -11,17 +9,34 @@ import lab.reco.common.Protocol.Event._
 import lab.reco.common.util.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Random
 
 class EventManagerImpl(esClient: ElasticClient,
-                       indexName: String,
-                       typeName: String)(implicit executionContext: ExecutionContext) extends EventManager with LazyLogging {
+                         indexName: String,
+                         typeName: String)(implicit executionContext: ExecutionContext) extends EventManager with LazyLogging {
 
-  private def generateSessionId: String = UUID.randomUUID().toString
+  createMapping()
+
+  private def generateSessionId: String = Random.alphanumeric.take(20).mkString
 
   private def currentTime: Long = System.currentTimeMillis()
 
-  private def prepareQuery(event: Event, defaultTimestamp: => Long): IndexRequest =
+  private def createMapping(): Unit = {
+    esClient.execute {
+      createIndex(indexName) mappings (
+        mapping(typeName) as (
+          keywordField(sessionIdField),
+          keywordField(subjectIdField),
+          keywordField(objectIdField),
+          longField(timestampField),
+          keywordField(indicatorField)
+        )
+        )
+    }
+  }
+  private def prepareQuery(sessionId: String, event: Event, defaultTimestamp: => Long): IndexRequest =
     indexInto(indexName, typeName) fieldValues(
+      SimpleFieldValue(sessionIdField, sessionId),
       SimpleFieldValue(subjectIdField, event.subjectId),
       SimpleFieldValue(objectIdField, event.objectId),
       SimpleFieldValue(timestampField, event.timestamp.getOrElse(defaultTimestamp)),
@@ -31,7 +46,7 @@ class EventManagerImpl(esClient: ElasticClient,
   override def storeEvent(sessionId: Option[String], event: Event): Future[String] = {
     val id = sessionId.getOrElse(generateSessionId)
 
-    val query = prepareQuery(event, currentTime)
+    val query = prepareQuery(id, event, currentTime)
 
     esClient execute query map { result =>
       logger.info(s"indexing result [$result]")
@@ -44,7 +59,7 @@ class EventManagerImpl(esClient: ElasticClient,
 
     lazy val time = currentTime
     val query = bulk {
-      event.map(prepareQuery(_, time))
+      event.map(prepareQuery(id, _, time))
     }
 
     esClient execute query map { result =>
@@ -56,6 +71,10 @@ class EventManagerImpl(esClient: ElasticClient,
   override def clearAllEvents(): Future[Unit] = {
     esClient execute deleteIndex(indexName) map { result =>
       logger.info(s"delete index [$indexName] result [$result]")
-    } logFailure(logger, s"delete index operation [$indexName] failed")
+    } logFailure(logger, s"delete index operation [$indexName] failed") map { _ =>
+      createMapping()
+    }
+
+
   }
 }
