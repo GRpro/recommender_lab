@@ -1,4 +1,4 @@
-package lab.reco.common
+package lab.reco.common.event
 
 import com.sksamuel.elastic4s.SimpleFieldValue
 import com.sksamuel.elastic4s.http.ElasticClient

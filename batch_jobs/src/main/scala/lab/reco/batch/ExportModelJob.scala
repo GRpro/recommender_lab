@@ -56,10 +56,15 @@ object ExportModelJob {
       case Row(text: String) =>
         val splitted = text.split("\t")
         val objectId = splitted(0)
-        val splittedRecommendations = splitted(1).split(" ").map { rec =>
-          val sp = rec.split(":")
-          (sp(0), sp(1).toDouble)
-        }.filterNot { _._1 == objectId }
+
+        val splittedRecommendations: Array[(String, Double)] = if (splitted.length > 1) {
+          splitted(1).split(" ").map { rec =>
+            val sp = rec.split(":")
+            (sp(0), sp(1).toDouble)
+          }.filterNot { _._1 == objectId }
+        } else {
+          Array.empty
+        }
 
         val recommendations = splittedRecommendations.map { _._1 }
         val preferences = splittedRecommendations.map { _._2 }

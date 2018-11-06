@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import lab.reco.common._
+import lab.reco.engine.recommendation.{RecommendationManager, SimilarObjectsRecommendation, SimilarObjectsRecommendationRequest}
 import spray.json._
 
 import scala.util.{Failure, Success}
@@ -16,6 +17,9 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 }
 
 trait Endpoints extends JsonSupport {
+
+  final val DefaultRecommendationsSize = 10
+
   def manager: RecommendationManager
 
   def routes: Route =
@@ -23,7 +27,7 @@ trait Endpoints extends JsonSupport {
       path("recommendation" / "similarObjects") {
         post {
           entity(as[SimilarObjectsRecommendationRequest]) { request =>
-            onComplete(manager.getSimilarObjectsRecommendation(request.objectId)) {
+            onComplete(manager.getRecommendations(request.objectId, request.size.getOrElse(DefaultRecommendationsSize))) {
               case Success(res) => complete(res)
               case Failure(e) => complete(StatusCodes.BadRequest, e.getMessage)
             }
@@ -38,6 +42,5 @@ trait Endpoints extends JsonSupport {
             }
           }
         }
-
     }
 }

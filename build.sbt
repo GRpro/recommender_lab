@@ -7,7 +7,7 @@ val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(recommender, common)
+  .aggregate(recommender, event_manager, batch_jobs, job_runner, common)
   .settings(commonSettings: _*)
   .settings(
     name := "recommender_lab"
@@ -30,6 +30,13 @@ lazy val event_manager = project.in(file("event_manager"))
   .settings(commonSettings: _*)
   .settings(
     name := "event_manager"
+  )
+  .dependsOn(common)
+
+lazy val job_runner = project.in(file("job_runner"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "job_runner"
   )
   .dependsOn(common)
 

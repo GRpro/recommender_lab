@@ -1,4 +1,4 @@
-package lab.reco.engine
+package lab.reco.job
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -7,36 +7,34 @@ import com.sksamuel.elastic4s.http.ElasticClient
 import com.typesafe.scalalogging.LazyLogging
 import lab.reco.common.ESClientProvider
 import lab.reco.common.model.EventConfigService
-import lab.reco.engine.recommendation.RecommendationManager
-import lab.reco.engine.api.Endpoints
-import lab.reco.engine.config.ConfigStore
+import lab.reco.job.api.Endpoints
+import lab.reco.job.config.ConfigStore
 
 object WebServer extends LazyLogging {
+  def main(args: Array[String]) {
 
-  def main(args: Array[String]): Unit = {
-
-    implicit val system = ActorSystem("recommendation-manager")
+    implicit val system = ActorSystem("job-runner")
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
     val esClient: ElasticClient = ESClientProvider.createESClient(ConfigStore.esUsername, ConfigStore.esPassword, ConfigStore.esClientUri)
-    val eventConfigService: EventConfigService = EventConfigService(esClient)
 
-    val recommenderManager: RecommendationManager = RecommendationManager(esClient, eventConfigService)
+    val eventManager: EventConfigService = EventConfigService(esClient)
 
     val endpoints = new Endpoints {
-      override val manager: RecommendationManager = recommenderManager
+      override val modelService: ModelService = ModelService(eventManager, ConfigStore)
     }
 
     val bindingFuture = Http()
       .bindAndHandle(endpoints.routes, ConfigStore.serviceHost, ConfigStore.servicePort)
 
-    logger.info(s"running recommender on ${ConfigStore.serviceHost}:${ConfigStore.servicePort}")
+    logger.info(s"running job_runner on ${ConfigStore.serviceHost}:${ConfigStore.servicePort}")
 
     sys.addShutdownHook {
       bindingFuture
         .flatMap(_.unbind()) // trigger unbinding from the port
         .onComplete(_ => system.terminate())
     }
+
   }
 }

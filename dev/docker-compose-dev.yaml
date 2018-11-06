@@ -40,6 +40,7 @@ services:
     build: ./img
     ports:
       - "8080:8080"
+      - "5557:5557" # job_runner
     links:
       - hdfs
       - elasticsearch
@@ -53,7 +54,9 @@ services:
     command: >
       bash -c "service ssh start
       && /usr/local/spark/sbin/start-master.sh
-      && tail -f /usr/local/spark/logs/*"
+      && java -cp /usr/local/job_runner-assembly-0.1.jar lab.reco.job.WebServer"
+
+    # && tail -f /usr/local/spark/logs/*"
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2

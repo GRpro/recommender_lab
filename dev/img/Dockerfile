@@ -67,4 +67,13 @@ WORKDIR /usr/local
 
 ADD spark/ $SPARK_HOME/
 
+ADD tmp/batch_jobs-assembly-0.1.jar /usr/local/
+ADD tmp/job_runner-assembly-0.1.jar /usr/local/
+
+RUN mkdir -p /usr/local/scripts
+ADD export_events.sh /usr/local/scripts/
+ADD train_model.sh /usr/local/scripts/
+ADD export_model.sh /usr/local/scripts/
+RUN chmod a+x /usr/local/scripts/*
+
 EXPOSE 22

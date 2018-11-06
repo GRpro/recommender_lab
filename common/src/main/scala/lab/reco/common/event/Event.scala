@@ -1,5 +1,4 @@
-package lab.reco.common
-
+package lab.reco.common.event
 
 case class Event(subjectId: String,
                  objectId: String,
