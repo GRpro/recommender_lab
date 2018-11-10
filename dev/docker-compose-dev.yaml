@@ -1,4 +1,38 @@
 version: '3'
+
+# Memory resource allocation:
+#
+# - spark-master
+# 64M - job_runner
+# 256M - spark-daemon
+# 512M - spark-driver (created per job)
+#
+# Number of concurrent jobs is equal to number of indicators.
+# if max_job_num = 3: 512M * 3 = 1536M
+#
+# 320M + 1536M < 2500M
+# 2500M + 500M (reservation)
+#
+#
+# - spark-worker
+# 256M - spark-daemon
+# 2100M - memory for executors
+#
+# 2500M + 500M (reservation)
+#
+#
+# - elasticsearch
+# ???
+#
+#
+# - hdfs
+#
+# ???
+#
+#
+# TOTAL:
+# 5000M + 500M (reservation) + elasticsearch + hdfs < 7000M (minimal memory for running installation)
+
 services:
 
   # TODO run in distributed mode
@@ -24,6 +58,13 @@ services:
       - spark-master
     links:
       - hdfs
+      - elasticsearch
+    deploy:
+      resources:
+        limits:
+          memory: 2500M
+        reservations:
+          memory: 500M
     networks:
       - lab
     ports:
@@ -44,6 +85,12 @@ services:
     links:
       - hdfs
       - elasticsearch
+    deploy:
+      resources:
+        limits:
+          memory: 2500M
+        reservations:
+          memory: 500M
     networks:
       - lab
     environment:
@@ -54,7 +101,7 @@ services:
     command: >
       bash -c "service ssh start
       && /usr/local/spark/sbin/start-master.sh
-      && java -cp /usr/local/job_runner-assembly-0.1.jar lab.reco.job.WebServer"
+      && java -Xmx64M -cp /usr/local/job_runner-assembly-0.1.jar lab.reco.job.WebServer"
 
     # && tail -f /usr/local/spark/logs/*"
 
@@ -83,29 +130,29 @@ services:
     networks:
       - lab
 
-  elasticsearch2:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
-    container_name: elasticsearch2
-    environment:
-      - cluster.name=docker-cluster
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "discovery.zen.ping.unicast.hosts=elasticsearch"
-      - "xpack.graph.enabled=false"
-      - "xpack.ml.enabled=false"
-      - "xpack.monitoring.enabled=false"
-      - "xpack.security.enabled=false"
-      - "xpack.watcher.enabled=false"
-    expose:
-      - "9200"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - esdata2:/usr/share/elasticsearch/data
-    networks:
-      - lab
+#  elasticsearch2:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
+#    container_name: elasticsearch2
+#    environment:
+#      - cluster.name=docker-cluster
+#      - bootstrap.memory_lock=true
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#      - "discovery.zen.ping.unicast.hosts=elasticsearch"
+#      - "xpack.graph.enabled=false"
+#      - "xpack.ml.enabled=false"
+#      - "xpack.monitoring.enabled=false"
+#      - "xpack.security.enabled=false"
+#      - "xpack.watcher.enabled=false"
+#    expose:
+#      - "9200"
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#    volumes:
+#      - esdata2:/usr/share/elasticsearch/data
+#    networks:
+#      - lab
 
 volumes:
   esdata1:
