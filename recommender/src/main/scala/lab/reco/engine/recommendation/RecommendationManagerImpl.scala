@@ -1,5 +1,7 @@
 package lab.reco.engine.recommendation
 
+import java.util.NoSuchElementException
+
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.typesafe.scalalogging.LazyLogging
@@ -66,6 +68,11 @@ class RecommendationManagerImpl(esClient: ElasticClient, eventConfigService: Eve
         .fields("recommendations").asInstanceOf[JsArray]
         .elements.map(_.asInstanceOf[JsString].value)
       recommendations
+    } recover {
+      case _: NoSuchElementException =>
+        logger.warn(s"recommendation for $objectId does not exist in index [$indexName]")
+        Seq.empty // recommendations for subjectId isn't included in the model
+      case e => throw e
     }
   }
 

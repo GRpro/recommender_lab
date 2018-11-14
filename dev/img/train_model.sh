@@ -16,8 +16,8 @@ if [ -z "$3" ]
 --itemIDColumn 2 \
 --rowIDColumn 0 \
 --filterColumn 1 \
---sparkExecutorMem 1G \
---define:spark.executor.cores=2 \
+--sparkExecutorMem 2G \
+--define:spark.executor.cores=4 \
 --define:spark.dynamicAllocation.enabled=true \
 --define:spark.shuffle.service.enabled=true \
 --define:spark.dynamicAllocation.executorIdleTimeout=30s \
@@ -35,8 +35,8 @@ if [ -z "$3" ]
 --itemIDColumn 2 \
 --rowIDColumn 0 \
 --filterColumn 1 \
---sparkExecutorMem 1G \
---define:spark.executor.cores=2 \
+--sparkExecutorMem 2G \
+--define:spark.executor.cores=4 \
 --define:spark.dynamicAllocation.enabled=true \
 --define:spark.shuffle.service.enabled=true \
 --define:spark.dynamicAllocation.executorIdleTimeout=30s \
