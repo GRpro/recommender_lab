@@ -3,3 +3,4 @@
 **/*.iml
 **/tmp
 **/logs
+**/.DS_store
