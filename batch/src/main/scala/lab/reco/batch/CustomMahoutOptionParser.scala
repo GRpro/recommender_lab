@@ -1,7 +1,7 @@
 package lab.reco.batch
 
-import org.apache.mahout.drivers.MahoutOptionParser
 import org.apache.spark.SparkConf
+import scopt.OptionParser
 
 import scala.collection.immutable
 
@@ -12,14 +12,15 @@ import scala.collection.immutable
   * @note options are engine neutral by convention. See the engine specific extending class for
   *       to add Spark or other engine options.
   */
-class CustomMahoutOptionParser(programName: String) extends MahoutOptionParser(programName: String) {
-
+class CustomMahoutOptionParser(programName: String) extends OptionParser[Map[String, Any]](programName: String) {
   // build options from some stardard CLI param groups
   // Note: always put the driver specific options at the last so they can override any previous options!
 
-  override def showUsageOnError = true
+  var opts = Map.empty[String, Any]
 
-  override def parseIOOptions(numInputs: Int = 1) = {
+  override def showUsageOnError = Some(true)
+
+  def parseIOOptions(numInputs: Int = 1) = {
     opts = opts ++ CustomMahoutOptionParser.FileIOOptions
     note("Input, output options")
     opt[String]('i', "input") required() action { (x, options) =>
@@ -37,7 +38,7 @@ class CustomMahoutOptionParser(programName: String) extends MahoutOptionParser(p
 
   }
 
-  override def parseGenericOptions() = {
+  def parseGenericOptions() = {
     opts = opts ++ CustomMahoutOptionParser.GenericOptions
     opt[Int]("randomSeed") abbr ("rs") action { (x, options) =>
       options + ("randomSeed" -> x)
@@ -51,7 +52,7 @@ class CustomMahoutOptionParser(programName: String) extends MahoutOptionParser(p
     }//Hidden option, though a user might want this.
   }
 
-  override def parseElementInputSchemaOptions() = {
+  def parseElementInputSchemaOptions() = {
     //Input text file schema--not driver specific but input data specific, elements input,
     // not rows of IndexedDatasets
     opts = opts ++ CustomMahoutOptionParser.TextDelimitedElementsOptions
@@ -99,7 +100,7 @@ class CustomMahoutOptionParser(programName: String) extends MahoutOptionParser(p
     }
   }
 
-  override def parseFileDiscoveryOptions() = {
+  def parseFileDiscoveryOptions() = {
     //File finding strategy--not driver specific
     opts = opts ++ CustomMahoutOptionParser.FileDiscoveryOptions
     note("\nFile discovery options:")
@@ -114,7 +115,7 @@ class CustomMahoutOptionParser(programName: String) extends MahoutOptionParser(p
 
   }
 
-  override def parseIndexedDatasetFormatOptions(notice: String = "\nOutput text file schema options:") = {
+  def parseIndexedDatasetFormatOptions(notice: String = "\nOutput text file schema options:") = {
     opts = opts ++ CustomMahoutOptionParser.TextDelimitedIndexedDatasetOptions
     note(notice)
     opt[String]("rowKeyDelim") abbr ("rd") action { (x, options) =>
