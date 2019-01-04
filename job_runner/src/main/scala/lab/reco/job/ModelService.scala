@@ -6,17 +6,10 @@ import lab.reco.job.config.RunnerConfig
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class TaskStatus(name: String, completedAt: Option[Long], error: Option[String])
-case class JobStatus(tasks: Set[TaskStatus],
-                     startedAt: Long,
-                     elapsed: Long,
-                     hasFailures: Boolean,
-                     completedAt: Option[Long])
-
 trait ModelService {
-  def train(): Future[JobStatus]
+  def train(): Future[Task]
 
-  def getStatus: Try[JobStatus]
+  def getStatus: Try[Option[Task]]
 
 }
 

@@ -5,15 +5,14 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import lab.reco.job.{JobStatus, ModelService, TaskStatus}
+import lab.reco.job.{ModelService, Task}
 import spray.json._
 
 import scala.util.{Failure, Success}
 
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val taskStatusFormat: RootJsonFormat[TaskStatus] = jsonFormat3(TaskStatus)
-  implicit val jobStatusFormat: RootJsonFormat[JobStatus] = jsonFormat5(JobStatus)
+  implicit val taskStatusFormat: RootJsonFormat[Task] = jsonFormat5(Task)
 }
 
 trait Endpoints extends JsonSupport {
