@@ -1,7 +1,7 @@
 package lab.reco.job
 
 case class Task(id: String,
-                children: Seq[Task],
+                children: Seq[Task] = Seq.empty,
                 startedAt: Option[Long] = None,
                 finishedAt: Option[Long] = None,
                 failReason: Option[String] = None)

@@ -5,17 +5,18 @@
 
 hadoop fs -rm -r hdfs://hdfs:9000"${1}"
 
-mahout spark-itemsimilarity \
+/usr/local/spark/bin/spark-submit \
+--class lab.reco.batch.ItemSimilarityDriver \
+--master spark://spark-master:7071 \
+--driver-memory 1500M \
+--executor-memory 2100M \
+--executor-cores 2 \
+--num-executors 2 \
+/usr/local/similarity_job-assembly-0.1.jar \
 --input hdfs:///events \
 --output hdfs://$1 \
 --master spark://spark-master:7071 \
 --indicatorList "${2}" \
 --itemIDColumn 2 \
 --rowIDColumn 0 \
---filterColumn 1 \
---sparkExecutorMem 2G \
---define:spark.executor.cores=4 \
---define:spark.dynamicAllocation.enabled=true \
---define:spark.shuffle.service.enabled=true \
---define:spark.dynamicAllocation.executorIdleTimeout=30s \
---define:spark.dynamicAllocation.cachedExecutorIdleTimeout=30s
+--filterColumn 1

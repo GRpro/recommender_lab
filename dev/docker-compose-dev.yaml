@@ -2,23 +2,15 @@ version: '3'
 
 # Memory resource allocation:
 #
-# - spark-master
+# - spark-master              (total 1900M)
 # 64M - job_runner
 # 256M - spark-daemon
-# 512M - spark-driver (created per job)
-#
-# Number of concurrent jobs is equal to number of indicators.
-# if max_job_num = 3: 512M * 3 = 1536M
-#
-# 320M + 1536M < 2500M
-# 2500M + 500M (reservation)
+# 1500M - spark-driver
 #
 #
-# - spark-worker
+# - spark-worker              (total 2300M)
 # 256M - spark-daemon
-# 2100M - memory for executors
-#
-# 2500M + 500M (reservation)
+# 2000M - memory for executors
 #
 #
 # - elasticsearch
@@ -31,7 +23,7 @@ version: '3'
 #
 #
 # TOTAL:
-# 5000M + 500M (reservation) + elasticsearch + hdfs < 7000M (minimal memory for running installation)
+# todo 5000M + 500M (reservation) + elasticsearch + hdfs < 7000M (minimal memory for running installation)
 
 services:
 
@@ -59,16 +51,16 @@ services:
     links:
       - hdfs
       - elasticsearch
+    ports:
+      - "8081-8082:8081" # Only for 2 slaves
     deploy:
       resources:
         limits:
-          memory: 2500M
+          memory: 3000M
         reservations:
-          memory: 500M
+          memory: 2800M
     networks:
       - lab
-    ports:
-      - "8081:8081"
     environment:
       - SPARK_WORKER_PORT=7999
       - SPARK_WORKER_WEBUI_PORT=8081
@@ -81,6 +73,7 @@ services:
     build: ./img
     ports:
       - "8080:8080"
+      - "4040:4040"
       - "5557:5557" # job_runner
     links:
       - hdfs
@@ -88,9 +81,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2500M
+          memory: 2000M
         reservations:
-          memory: 500M
+          memory: 1900M
     networks:
       - lab
     environment:

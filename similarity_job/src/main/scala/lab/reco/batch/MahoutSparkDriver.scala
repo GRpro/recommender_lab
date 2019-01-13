@@ -1,8 +1,10 @@
 package lab.reco.batch
 
 import org.apache.mahout.math.drm.DistributedContext
-import org.apache.spark.SparkConf
 import org.apache.mahout.sparkbindings._
+import org.apache.spark.{SparkConf, SparkContext}
+
+import scala.collection.TraversableOnce
 
 /**
   * Extend this class to create a Mahout CLI driver. Minimally you must override process and main.
@@ -55,10 +57,10 @@ abstract class MahoutSparkDriver extends MahoutDriver {
     * Override to set the SparkConf values specific to the job,
     * these must be set before the context is created.
     */
-  override protected def start() : Unit = {
+  override protected def start(): Unit = {
     if (!_useExistingContext) {
       sparkConf.set("spark.kryo.referenceTracking", "false")
-        .set("spark.kryoserializer.buffer.mb", "200m")// this is default for Mahout optimizer, change it with -D option
+        .set("spark.kryoserializer.buffer.mb", "200m") // this is default for Mahout optimizer, change it with -D option
         // the previous has been marked deprecated as of Spark 1.4 by the below line,
         // remove the above line when Spark finally retires above for below
         .set("spark.kryoserializer.buffer", "200m")
@@ -74,8 +76,24 @@ abstract class MahoutSparkDriver extends MahoutDriver {
     }
   }
 
+  def mahoutSparkContext(masterUrl: String, appName: String, customJars: TraversableOnce[String] = Nil,
+                         sparkConf: SparkConf = new SparkConf(), addMahoutJars: Boolean = true):
+  SparkDistributedContext = {
+
+    sparkConf.setAppName(appName).setMaster(masterUrl)
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .set("spark.kryo.registrator", "org.apache.mahout.sparkbindings.io.MahoutKryoRegistrator")
+
+    if (System.getenv("SPARK_HOME") != null) {
+      sparkConf.setSparkHome(System.getenv("SPARK_HOME"))
+    }
+
+    new SparkDistributedContext(new SparkContext(config = sparkConf))
+  }
+
   /**
     * Call this before start to use an existing context as when running multiple drivers from a scalatest suite.
+    *
     * @param context An already set up context to run against
     */
   def useContext(context: DistributedContext): Unit = {

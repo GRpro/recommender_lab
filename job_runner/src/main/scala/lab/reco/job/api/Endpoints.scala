@@ -12,7 +12,9 @@ import scala.util.{Failure, Success}
 
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val taskStatusFormat: RootJsonFormat[Task] = jsonFormat5(Task)
+  implicit val taskStatusFormat: RootJsonFormat[Task] =
+    rootFormat(lazyFormat(jsonFormat(Task, "id", "children", "startedAt", "finishedAt", "failReason")))
+
 }
 
 trait Endpoints extends JsonSupport {

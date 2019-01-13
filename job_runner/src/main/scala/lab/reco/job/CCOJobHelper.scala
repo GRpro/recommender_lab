@@ -25,24 +25,24 @@ object CCOJobHelper {
   implicit class JobOperations(val future: Future[Long]) extends AnyVal {
 
     @inline
-    private def handleCompletion(jobOption: Option[Job], taskName: String)(implicit executionContext: ExecutionContext): Future[Unit] =
+    private def handleCompletion(job: Job, taskName: String)(implicit executionContext: ExecutionContext): Future[Unit] =
       future.map { time =>
-        jobOption.foreach(_.succeedTask(taskName, time))
+        job.succeedTask(taskName, time)
       }.recover {
-        case e => jobOption.foreach(_.failTask(taskName, System.currentTimeMillis(), e.getMessage))
+        case e => job.failTask(taskName, System.currentTimeMillis(), e.getMessage)
           throw e
       }
 
     @inline
-    def exportEventsFinished(jobOption: Option[Job])(implicit executionContext: ExecutionContext): Future[Unit] =
-      handleCompletion(jobOption, ExportEventsTask)
+    def exportEventsFinished(job: Job)(implicit executionContext: ExecutionContext): Future[Unit] =
+      handleCompletion(job, ExportEventsTask)
 
     @inline
-    def trainModelFinished(jobOption: Option[Job])(implicit executionContext: ExecutionContext): Future[Unit] =
-      handleCompletion(jobOption, TrainModelTask)
+    def trainModelFinished(job: Job)(implicit executionContext: ExecutionContext): Future[Unit] =
+      handleCompletion(job, TrainModelTask)
 
     @inline
-    def importModelFinished(jobOption: Option[Job], indicator: String)(implicit executionContext: ExecutionContext): Future[Unit] =
-      handleCompletion(jobOption, importModelTask(indicator))
+    def importModelFinished(job: Job, indicator: String)(implicit executionContext: ExecutionContext): Future[Unit] =
+      handleCompletion(job, importModelTask(indicator))
   }
 }

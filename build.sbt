@@ -7,7 +7,15 @@ val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(recommender, event_manager, batch_jobs, job_runner, common, batch)
+  .aggregate(
+    recommender,
+    event_manager,
+    import_job,
+    export_job,
+    similarity_job,
+    job_runner,
+    common
+  )
   .settings(commonSettings: _*)
   .settings(
     name := "recommender_lab"
@@ -40,10 +48,23 @@ lazy val job_runner = project.in(file("job_runner"))
   )
   .dependsOn(common)
 
-lazy val batch_jobs = project.in(file("batch_jobs"))
+lazy val import_job = project.in(file("import_job"))
   .settings(commonSettings: _*)
   .dependsOn(common)
+  .settings(
+    name := "import_job"
+  )
 
-lazy val batch = project.in(file("batch"))
+lazy val export_job = project.in(file("export_job"))
   .settings(commonSettings: _*)
-//  .dependsOn(common)
+  .dependsOn(common)
+  .settings(
+    name := "export_job"
+  )
+
+lazy val similarity_job = project.in(file("similarity_job"))
+  .settings(commonSettings: _*)
+  .dependsOn(common)
+  .settings(
+    name := "similarity_job"
+  )

@@ -7,7 +7,7 @@ import lab.reco.common.util.Timed
 import lab.reco.job.CCOJobHelper._
 import lab.reco.job.config.RunnerConfig
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.sys.process._
 import scala.util.Try
 
@@ -22,11 +22,8 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
   private implicit var jobInfo: Option[Job] = None
 
   private def canStartNewJob: Boolean = jobInfo.forall { job =>
-    job.isFailed || !job.isFinished
+    job.isFailed || job.isFinished
   }
-
-  private def newJob(indicators: Seq[String]): Unit =
-    jobInfo = Some(Job.build(CCOJobHelper.createTasks(indicators)))
 
 
   private def executeCommand(cmd: String): Long = {
@@ -62,27 +59,28 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
 
           val indicators: List[String] = config.primaryIndicator :: config.secondaryIndicators.map(_.name).toList
 
-          newJob(indicators)
+          val newJob = Job.build(CCOJobHelper.createTasks(indicators))
+
+          jobInfo = Some(newJob)
 
           runExportEvents()
-            .exportEventsFinished(jobInfo)
+            .exportEventsFinished(newJob)
             .flatMap {
               _ => runTrainModel(s"/model", indicators)
             }
-            .trainModelFinished(jobInfo)
+            .trainModelFinished(newJob)
             .flatMap { _ =>
 
               val imports = indicators
                 .map { indicator =>
                   runImportModel(s"/model/similarity-matrix-$indicator", s"$indicator/$typeName")
-                    .importModelFinished(jobInfo, indicator)
+                    .importModelFinished(newJob, indicator)
                 }
 
               Future.sequence(imports)
-            }.map { _ =>
-            getStatus.get.get
-          }
+            }
 
+          Future.successful(newJob.currentStatus)
         case None =>
           Future.failed(new RuntimeException("no model config"))
       }
