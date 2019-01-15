@@ -2,13 +2,13 @@ version: '3'
 
 # Memory resource allocation:
 #
-# - spark-master              (total 1900M)
+# - spark-master              (total 2000M)
 # 64M - job_runner
 # 256M - spark-daemon
 # 1500M - spark-driver
 #
 #
-# - spark-worker              (total 2300M)
+# - spark-worker              (total 2500M)
 # 256M - spark-daemon
 # 2000M - memory for executors
 #
@@ -56,9 +56,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3000M
+          memory: 2500M
         reservations:
-          memory: 2800M
+          memory: 2400M
     networks:
       - lab
     environment:
