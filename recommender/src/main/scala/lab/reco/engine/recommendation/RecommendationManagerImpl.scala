@@ -22,18 +22,12 @@ class RecommendationManagerImpl(esClient: ElasticClient, eventConfigService: Eve
   }
 
   override def clearAllRecommendations(): Future[Unit] = {
-    eventConfigService.getConfig()
-      .filter(_.isDefined)
-      .map(_.get)
-      .flatMap { config =>
-        val sortedIndicatorNames = orderIndicatorNames(config)
-        val deleteIndexResults = sortedIndicatorNames.map { name =>
-          esClient execute deleteIndex(name) map { result =>
-            logger.info(s"delete index [$name] result [$result]")
-          } logFailure(logger, s"delete index operation [$name] failed")
-        }
-        Future.sequence(deleteIndexResults).map(_ => ())
-      }
+    val sortedIndicatorNames =
+      esClient execute deleteIndex(indexName) map { result =>
+        logger.info(s"delete index [$indexName] result [$result]")
+      } logFailure(logger, s"delete index operation [$indexName] failed")
+
+    sortedIndicatorNames.map(_ => ())
   }
 
   override def recommend(query: Query): Future[Recommendation] = {
