@@ -1,13 +1,13 @@
 package lab.reco.job
 
 import com.typesafe.scalalogging.LazyLogging
-import lab.reco.common.Protocol
+import lab.reco.common.Protocol.Recommendation._
 import lab.reco.common.model.EventConfigService
 import lab.reco.common.util.Timed
 import lab.reco.job.CCOJobHelper._
 import lab.reco.job.config.RunnerConfig
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process._
 import scala.util.Try
 
@@ -16,8 +16,6 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
   extends ModelService
     with Timed
     with LazyLogging {
-
-  private val typeName = Protocol.Recommendation.typeName
 
   private implicit var jobInfo: Option[Job] = None
 
@@ -46,8 +44,8 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
     executeCommand(command)
   }
 
-  private def runImportModel(modelPath: String, esTypeName: String): Future[Long] = Future {
-    val command = s"${runnerConfig.exportModelScriptPath} $modelPath $esTypeName"
+  private def runImportModel(modelPath: String, esTypeName: String, fieldName: String): Future[Long] = Future {
+    val command = s"${runnerConfig.exportModelScriptPath} $modelPath $esTypeName $fieldName"
     logger.info(s"export model to ElasticSearch command [$command]")
     executeCommand(command)
   }
@@ -73,7 +71,7 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
 
               val imports = indicators
                 .map { indicator =>
-                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indicator/$typeName")
+                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator))
                     .importModelFinished(newJob, indicator)
                 }
 

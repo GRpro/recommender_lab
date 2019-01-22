@@ -4,16 +4,15 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import lab.reco.common._
-import lab.reco.engine.recommendation.{RecommendationManager, SimilarObjectsRecommendation, SimilarObjectsRecommendationRequest}
+import lab.reco.engine.recommendation._
 import spray.json._
 
 import scala.util.{Failure, Success}
 
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val similarObjectsRecommendationRequestFormat: RootJsonFormat[SimilarObjectsRecommendationRequest] = jsonFormat2(SimilarObjectsRecommendationRequest)
-  implicit val similarObjectsRecommendationFormat: RootJsonFormat[SimilarObjectsRecommendation] = jsonFormat2(SimilarObjectsRecommendation)
+  implicit val queryFormat: RootJsonFormat[Query] = jsonFormat2(Query)
+  implicit val recommendationsFormat: RootJsonFormat[Recommendation] = jsonFormat1(Recommendation)
 }
 
 trait Endpoints extends JsonSupport {
@@ -24,10 +23,10 @@ trait Endpoints extends JsonSupport {
 
   def routes: Route =
     pathPrefix("api") {
-      path("recommendation" / "similarObjects") {
+      path("recommendation") {
         post {
-          entity(as[SimilarObjectsRecommendationRequest]) { request =>
-            onComplete(manager.getRecommendations(request.objectId, request.size.getOrElse(DefaultRecommendationsSize))) {
+          entity(as[Query]) { query =>
+            onComplete(manager.recommend(query)) {
               case Success(res) => complete(res)
               case Failure(e) => complete(StatusCodes.BadRequest, e.getMessage)
             }

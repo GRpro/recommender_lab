@@ -14,9 +14,9 @@ object Protocol {
   }
 
   object Recommendation {
-
-    final val typeName: String = "recommendations"
-    final def indexName(indicatorName: String): String = s"$indicatorName"
+    final val indexName: String = "object"
+    final val typeName: String = "info"
+    final def recommendationsField(indicator: String): String = s"recommendation_$indicator"
   }
 
   object Metadata {

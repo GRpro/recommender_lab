@@ -14,6 +14,7 @@ object ExportModelJob {
     options.addOption(new CliOption("eun", "es-username", true, "ElasticSearch username"))
     options.addOption(new CliOption("eup", "es-password", true, "ElasticSearch password"))
     options.addOption(new CliOption("i", "input", true, "Input path"))
+    options.addOption(new CliOption("n", "name", true, "Field name"))
 
     def printUsage =
       new HelpFormatter()
@@ -39,6 +40,7 @@ object ExportModelJob {
     val esUsername: String = cmdLine.getOptionValue("eun")
     val esPassword: String = cmdLine.getOptionValue("eup")
     val in: String = cmdLine.getOptionValue("i")
+    val name: String = cmdLine.getOptionValue("n")
 
     val sparkConf = new SparkConf()
       .setMaster("local[*]")
@@ -67,9 +69,8 @@ object ExportModelJob {
         }
 
         val recommendations = splittedRecommendations.map { _._1 }
-        val preferences = splittedRecommendations.map { _._2 }
-        (objectId, recommendations, preferences)
-    }.toDF("objectId", "recommendations", "preferences").withColumn("id", $"objectId")
+        (objectId, recommendations)
+    }.toDF("objectId", name).withColumn("id", $"objectId")
 
     df.write
       .format("org.elasticsearch.spark.sql")
@@ -81,7 +82,8 @@ object ExportModelJob {
       .option("es.net.ssl", "false")
       .option("es.mapping.id", "id")
       .option("es.mapping.exclude", "id")
-      .mode("overwrite")
+      .option("es.write.operation", "upsert")
+      .mode("append")
       .option("es.nodes", esUrl)
       .save(esIndexType)
 
