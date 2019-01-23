@@ -76,6 +76,9 @@ class RecommendationManagerImpl(esClient: ElasticClient, eventConfigService: Eve
           }
           Recommendation(recommendations)
         } recover {
+          case _: NoSuchElementException =>
+            // no recommendations computed
+            Recommendation(Seq.empty)
           case e =>
             logger.warn(s"failed to retrieve recommendations for query [$q]", e)
             throw e

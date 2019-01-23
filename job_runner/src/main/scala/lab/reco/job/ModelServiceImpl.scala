@@ -69,13 +69,22 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
             .trainModelFinished(newJob)
             .flatMap { _ =>
 
-              val imports = indicators
-                .map { indicator =>
+              def runImport(previous: Future[Unit], indicator: String): Future[Unit] = {
+                previous.flatMap { _ =>
                   runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator))
                     .importModelFinished(newJob, indicator)
                 }
+              }
 
-              Future.sequence(imports)
+              indicators
+                .foldLeft(Future.successful())( runImport )
+
+//              val imports = indicators
+//                .map { indicator =>
+//                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator))
+//                    .importModelFinished(newJob, indicator)
+//                }
+//              Future.sequence(imports)
             }
 
           Future.successful(newJob.currentStatus)
