@@ -27,6 +27,32 @@ version: '3'
 
 services:
 
+  event_manager:
+    build: ./img
+    networks:
+      - lab
+    expose:
+      - "5555"
+    ports:
+      - "5555:5555"
+    command: >
+      bash -c "service ssh start
+      && java -Xmx256M -cp /usr/local/event_manager-assembly-0.1.jar lab.reco.event.WebServer"
+
+
+  recommender:
+    build: ./img
+    networks:
+      - lab
+    expose:
+      - "5556"
+    ports:
+      - "5556:5556"
+    command: >
+      bash -c "service ssh start
+      && java -Xmx256M -cp /usr/local/recommender-assembly-0.1.jar lab.reco.engine.WebServer"
+
+
   # TODO run in distributed mode
   hdfs:
     build: ./img
