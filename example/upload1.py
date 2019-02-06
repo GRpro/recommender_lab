@@ -17,10 +17,14 @@ def main():
                 {
                     "subjectId": user,
                     "objectId": item,
-                    "indicator": indicator
+                    "indicator": indicator,
+                    "objectProperties": {
+                        "p1": user,
+                        "p2": item
+                    }
                 }
             )
-    url = 'http://localhost:5555/api/events/batch'
+    url = 'http://localhost:5555/api/events/createMany'
     requests.post(url, json=events)
 
 

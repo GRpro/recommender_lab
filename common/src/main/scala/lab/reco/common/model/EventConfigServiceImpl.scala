@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import lab.reco.common.Protocol.Metadata._
 import lab.reco.common.util.Implicits._
 import spray.json.ParserInput.StringBasedParserInput
-import spray.json.{JsArray, JsString, JsonParser}
+import spray.json.{JsArray, JsNumber, JsString, JsonParser}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -20,7 +20,7 @@ class EventConfigServiceImpl(elasticClient: ElasticClient)(implicit executionCon
     IndicatorConfig(splitted(0), splitted(1).toInt)
   }
 
-  override def storeConfig(modelConfig: ModelConfig): Future[Unit] = {
+  override def setIndicatorsConfig(modelConfig: IndicatorsConfig): Future[Unit] = {
     elasticClient.execute {
       indexInto(indexName, typeName) fieldValues(
         SimpleFieldValue(primaryIndicatorField, modelConfig.primaryIndicator),
@@ -29,16 +29,16 @@ class EventConfigServiceImpl(elasticClient: ElasticClient)(implicit executionCon
             SimpleFieldValue(indicatorConfigToString(indicatorConfig))
           )
         )
-      ) id modelConfigId
+      ) id indicatorsConfigId
     }
       .logFailure(logger, "failed to store model metadata")
       .logSuccess(logger, "successfully stored model metadata")
       .map(_ => ())
   }
 
-  override def getConfig(): Future[Option[ModelConfig]] = {
+  override def getIndicatorsConfig(): Future[Option[IndicatorsConfig]] = {
     elasticClient.execute {
-      get(indexName, typeName, modelConfigId)
+      get(indexName, typeName, indicatorsConfigId)
     }
       .map { result =>
         val response = result.body.get
@@ -52,10 +52,41 @@ class EventConfigServiceImpl(elasticClient: ElasticClient)(implicit executionCon
               .map(_.asInstanceOf[JsString].value)
               .map(indicatorConfigFromString)
             ).getOrElse(Seq.empty)
-          ModelConfig(primaryIndicator, secondaryIndicators)
+          IndicatorsConfig(primaryIndicator, secondaryIndicators)
         }
       }
       .logFailure(logger, "failed to retrieve model metadata")
       .logSuccess(logger, "successfully retrieved model metadata")
   }
+
+
+  private def doGetVersion(): Future[Option[Int]] = {
+    elasticClient.execute {
+      get(indexName, typeName, modelConfigId)
+    }
+      .map { result =>
+        val response = result.body.get
+        JsonParser(new StringBasedParserInput(response)).asJsObject
+          .fields.get("_source").flatMap { source =>
+          val obj = source.asJsObject
+          obj.fields.get(modelVersionField).map(_.asInstanceOf[JsNumber].value.toInt)
+        }
+      }
+  }
+
+  override def setModelVersion(version: Int): Future[Unit] = {
+    elasticClient.execute {
+      indexInto(indexName, typeName) fieldValues SimpleFieldValue(modelVersionField, version) id modelConfigId
+    }
+      .map(_ => ())
+  }
+
+  // TODO fix race conditions
+  override def getModelVersion(): Future[Int] =
+    doGetVersion().flatMap {
+      case Some(version) => Future.successful(version)
+      case None =>
+        setModelVersion(0)
+        doGetVersion().map(_.get)
+    }
 }

@@ -52,7 +52,7 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
 
   override def train(): Future[Task] = {
     if (canStartNewJob) {
-      eventConfigService.getConfig().flatMap {
+      eventConfigService.getIndicatorsConfig().flatMap {
         case Some(config) =>
 
           val indicators: List[String] = config.primaryIndicator :: config.secondaryIndicators.map(_.name).toList
@@ -68,23 +68,33 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
             }
             .trainModelFinished(newJob)
             .flatMap { _ =>
+              eventConfigService.getModelVersion()
+            }
+            .flatMap { version =>
+              val newModelVersion = version + 1
 
               def runImport(previous: Future[Unit], indicator: String): Future[Unit] = {
                 previous.flatMap { _ =>
-                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator))
+                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator, newModelVersion.toString))
                     .importModelFinished(newJob, indicator)
                 }
               }
 
-              indicators
+              val result = indicators
                 .foldLeft(Future.successful())( runImport )
 
+//              // run in parallel
 //              val imports = indicators
 //                .map { indicator =>
-//                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator))
+//                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator, newModelVersion.toString))
 //                    .importModelFinished(newJob, indicator)
 //                }
-//              Future.sequence(imports)
+//              val result = Future.sequence(imports)
+
+
+              result.flatMap { _ =>
+                eventConfigService.setModelVersion(newModelVersion)
+              }
             }
 
           Future.successful(newJob.currentStatus)

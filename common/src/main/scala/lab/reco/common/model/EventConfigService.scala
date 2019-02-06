@@ -7,13 +7,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class IndicatorConfig(name: String, priority: Int)
 
-case class ModelConfig(primaryIndicator: String, secondaryIndicators: Seq[IndicatorConfig])
+case class IndicatorsConfig(primaryIndicator: String, secondaryIndicators: Seq[IndicatorConfig])
 
 trait EventConfigService {
 
-  def storeConfig(modelConfig: ModelConfig): Future[Unit]
+  def setIndicatorsConfig(modelConfig: IndicatorsConfig): Future[Unit]
 
-  def getConfig(): Future[Option[ModelConfig]]
+  def getIndicatorsConfig(): Future[Option[IndicatorsConfig]]
+
+  def getModelVersion(): Future[Int]
+
+  def setModelVersion(version: Int): Future[Unit]
 }
 
 

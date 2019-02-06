@@ -14,7 +14,7 @@ def main(path):
         header = next(rdr)
         print("header, ", header)
 
-        url = 'http://localhost:5555/api/events/batch'
+        url = 'http://localhost:5555/api/events/createMany'
 
         n = 0
         max = 1000

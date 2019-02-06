@@ -36,7 +36,9 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
 
     esClient
       .execute {
-        createIndex(Recommendation.indexName)
+        createIndex(Recommendation.indexName) mappings (
+          mapping(Recommendation.typeName) as()
+        )
       }
       .logFailure(logger, "failed to create mapping to store objects")
   }

@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import lab.reco.common.event._
-import lab.reco.common.model.{EventConfigService, IndicatorConfig, ModelConfig}
+import lab.reco.common.model.{EventConfigService, IndicatorConfig, IndicatorsConfig}
 import spray.json._
 
 import scala.util.{Failure, Success}
@@ -17,7 +17,7 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val eventFormat: RootJsonFormat[Event] = jsonFormat5(Event)
   implicit val storeEventResponseFormat: RootJsonFormat[StoreEventResponse] = jsonFormat1(StoreEventResponse)
   implicit val indicatorConfigFormat: RootJsonFormat[IndicatorConfig] = jsonFormat2(IndicatorConfig)
-  implicit val modelConfigFormat: RootJsonFormat[ModelConfig] = jsonFormat2(ModelConfig)
+  implicit val modelConfigFormat: RootJsonFormat[IndicatorsConfig] = jsonFormat2(IndicatorsConfig)
   implicit val objectGetFormat: RootJsonFormat[ObjectGet] = jsonFormat1(ObjectGet)
   implicit val objectDeleteFormat: RootJsonFormat[ObjectDelete] = jsonFormat1(ObjectDelete)
 
@@ -189,7 +189,7 @@ trait Endpoints extends JsonSupport {
   private def configureModelApi: Route =
     path("model") {
       get {
-        onComplete(eventConfigService.getConfig()) {
+        onComplete(eventConfigService.getIndicatorsConfig()) {
           case Success(Some(modelConfig)) => complete(modelConfig)
           case Success(None) => complete(StatusCodes.NoContent)
           case Failure(e) => complete(StatusCodes.BadRequest, e.getMessage)
@@ -198,8 +198,8 @@ trait Endpoints extends JsonSupport {
     } ~
       path("model") {
         post { // configure model
-          entity(as[ModelConfig]) { modelConfig =>
-            onComplete(eventConfigService.storeConfig(modelConfig)) {
+          entity(as[IndicatorsConfig]) { modelConfig =>
+            onComplete(eventConfigService.setIndicatorsConfig(modelConfig)) {
               case Success(_) => complete(StatusCodes.OK)
               case Failure(e) => complete(StatusCodes.BadRequest, e.getMessage)
             }
