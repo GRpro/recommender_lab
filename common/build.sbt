@@ -23,3 +23,5 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
 
+
+// libraryDependencies += "com.github.swagger-akka-http" %% "swagger-akka-http" % "1.0.0"

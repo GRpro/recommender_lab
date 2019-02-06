@@ -6,7 +6,7 @@ import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.typesafe.scalalogging.LazyLogging
 import lab.reco.common.ESClientProvider
-import lab.reco.common.event.EventManager
+import lab.reco.common.event.EventManagerService
 import lab.reco.common.model.EventConfigService
 import lab.reco.event.api.Endpoints
 import lab.reco.event.config.ConfigStore
@@ -21,7 +21,7 @@ object WebServer extends LazyLogging {
     val esClient: ElasticClient = ESClientProvider.createESClient(ConfigStore.esUsername, ConfigStore.esPassword, ConfigStore.esClientUri)
 
     val endpoints = new Endpoints {
-      override val eventManager: EventManager = EventManager(esClient)
+      override val eventManager: EventManagerService = EventManagerService(esClient)
 
       override val eventConfigService: EventConfigService = EventConfigService(esClient)
     }

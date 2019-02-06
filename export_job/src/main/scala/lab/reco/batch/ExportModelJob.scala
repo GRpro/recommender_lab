@@ -83,6 +83,7 @@ object ExportModelJob {
       .option("es.mapping.id", "id")
       .option("es.mapping.exclude", "id")
       .option("es.write.operation", "upsert")
+      .option("es.update.retry.on.conflict", "5")
       .mode("append")
       .option("es.nodes", esUrl)
       .save(esIndexType)
