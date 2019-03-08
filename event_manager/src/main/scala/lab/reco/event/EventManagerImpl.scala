@@ -1,4 +1,5 @@
-package lab.reco.common.event
+package lab.reco.event
+
 
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{bulk => _, get => _, _}
@@ -11,9 +12,10 @@ import spray.json.ParserInput.StringBasedParserInput
 import spray.json.{JsArray, JsBoolean, JsNumber, JsObject, JsString, JsonParser}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.Try
 
 
-class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: ExecutionContext) extends EventManagerService with LazyLogging {
+class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: ExecutionContext) extends EventManager with LazyLogging {
 
   private final val client: HttpClient = esClient.client
 
@@ -38,7 +40,7 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       .execute {
         createIndex(Recommendation.indexName) mappings (
           mapping(Recommendation.typeName) as()
-        )
+          )
       }
       .logFailure(logger, "failed to create mapping to store objects")
   }
@@ -238,13 +240,13 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
   private def defaultEventTimestamp: Long = System.currentTimeMillis()
 
 
-//  override def deleteAllEvents(): Future[Unit] = {
-//    esClient execute deleteIndex(EventProtocol.indexName) map { result =>
-//      logger.info(s"delete index [${EventProtocol.indexName}] result [$result]")
-//    } logFailure(logger, s"delete index operation [${EventProtocol.indexName}] failed") map { _ =>
-//      createMapping()
-//    }
-//  }
+  //  override def deleteAllEvents(): Future[Unit] = {
+  //    esClient execute deleteIndex(EventProtocol.indexName) map { result =>
+  //      logger.info(s"delete index [${EventProtocol.indexName}] result [$result]")
+  //    } logFailure(logger, s"delete index operation [${EventProtocol.indexName}] failed") map { _ =>
+  //      createMapping()
+  //    }
+  //  }
 
   def getObjectSchema(): Future[Option[JsObject]] = {
     val request = ElasticRequest("GET", s"${Recommendation.indexName}/_mapping/${Recommendation.typeName}")
@@ -259,14 +261,16 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       logger.info(s"get object mapping response [$response]")
       response.statusCode match {
         case 200 =>
-          val mapping = JsonParser(new StringBasedParserInput(response.entity.get.content)).asJsObject
-            .fields(Recommendation.indexName).asJsObject
-            .fields("mappings").asJsObject
-            .fields(Recommendation.typeName).asJsObject
-            .fields("properties").asJsObject
-            .fields(Recommendation.propertiesField).asJsObject
-            .fields("properties").asJsObject
-          Some(mapping)
+          val obj = JsonParser(new StringBasedParserInput(response.entity.get.content)).asJsObject
+          Try {
+            obj
+              .fields(Recommendation.indexName).asJsObject
+              .fields("mappings").asJsObject
+              .fields(Recommendation.typeName).asJsObject
+              .fields("properties").asJsObject
+              .fields(Recommendation.propertiesField).asJsObject
+              .fields("properties").asJsObject
+          }.toOption
         case 404 =>
           None
       }
@@ -277,13 +281,13 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
     val request = ElasticRequest("PUT", s"${Recommendation.indexName}/_mapping/${Recommendation.typeName}",
       HttpEntity(
         s"""
-          |{
-          |   "properties": {
-          |       "${Recommendation.propertiesField}": {
-          |           "properties": ${jsonMapping.compactPrint}
-          |       }
-          |   }
-          |}
+           |{
+           |   "properties": {
+           |       "${Recommendation.propertiesField}": {
+           |           "properties": ${jsonMapping.compactPrint}
+           |       }
+           |   }
+           |}
         """.stripMargin
       )
     )
@@ -367,11 +371,11 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
   def deleteObject(objectId: String): Future[Boolean] = {
     val query =
       s"""{
-        |  "ids" : {
-        |    "type" : "${Recommendation.typeName}",
-        |    "values" : ["$objectId"]
-        |  }
-        |}""".stripMargin
+         |  "ids" : {
+         |    "type" : "${Recommendation.typeName}",
+         |    "values" : ["$objectId"]
+         |  }
+         |}""".stripMargin
     deleteObjects(query).map(_ == 1)
   }
 
@@ -389,7 +393,8 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
            |      $jsonQuery
            |      ]
            |    }
-           |  }
+           |  },
+           |  "conflicts": "proceed"
            |}
       """.stripMargin)
     )

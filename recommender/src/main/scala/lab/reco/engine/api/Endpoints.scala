@@ -11,8 +11,8 @@ import scala.util.{Failure, Success}
 
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val queryFormat: RootJsonFormat[Query] = jsonFormat2(Query)
-  implicit val recommendationsFormat: RootJsonFormat[Recommendation] = jsonFormat1(Recommendation)
+  implicit val queryFormat: RootJsonFormat[Query] = jsonFormat4(Query)
+  implicit val recommendationsFormat: RootJsonFormat[Recommendation] = jsonFormat3(Recommendation)
 }
 
 trait Endpoints extends JsonSupport {

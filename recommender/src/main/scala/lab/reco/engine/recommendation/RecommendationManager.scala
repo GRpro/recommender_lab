@@ -7,7 +7,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait RecommendationManager {
 
-  def recommend(query: Query): Future[Recommendation]
+  def recommend(query: Query): Future[Seq[Recommendation]]
 
   def clearAllRecommendations(): Future[Unit]
 }

@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import lab.reco.common.Protocol.Recommendation._
 import lab.reco.common.model.{EventConfigService, IndicatorsConfig}
 import lab.reco.common.util.Implicits._
-import spray.json.{JsArray, JsObject, JsString, JsonParser}
+import spray.json.{JsArray, JsNumber, JsObject, JsString, JsValue, JsonParser}
 import spray.json.ParserInput.StringBasedParserInput
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,9 +30,8 @@ class RecommendationManagerImpl(esClient: ElasticClient, eventConfigService: Eve
     sortedIndicatorNames.map(_ => ())
   }
 
-  override def recommend(query: Query): Future[Recommendation] = {
+  override def recommend(query: Query): Future[Seq[Recommendation]] = {
     eventConfigService.getModelVersion().flatMap { modelVersion =>
-
       eventConfigService.getIndicatorsConfig()
         .filter(_.isDefined)
         .map(_.get)
@@ -40,27 +39,34 @@ class RecommendationManagerImpl(esClient: ElasticClient, eventConfigService: Eve
           val sortedIndicatorNames = orderIndicatorNames(config)
           logger.info(s"indicator names in order: $sortedIndicatorNames")
 
-          val termsQuery = sortedIndicatorNames.flatMap { indicator =>
+          val termsRecommendationsQuery = sortedIndicatorNames.flatMap { indicator =>
+            // should make each term unique in the Array to boost in case more of them
             query.history.getOrElse(indicator, Seq.empty).map(objectId => {
-              s"""
-                 |        {
-                 |          "terms": {
-                 |            "${recommendationsField(indicator, modelVersion.toString)}": ["$objectId"]
-                 |          }
-                 |        }""".stripMargin
+              JsObject(Map(
+                "terms" -> JsObject(Map(
+                  recommendationsField(indicator, modelVersion.toString) -> JsArray(JsString(objectId))
+                ))
+              ))
             })
-          }.mkString(",")
+          }
 
-          val q =
-            s"""
-               |{
-               |    "bool": {
-               |      "should": [$termsQuery
-               |      ]
-               |    }
-               |}
-          """.stripMargin
+          var boolQueryComponents: Map[String, JsValue] = Map.empty
 
+          boolQueryComponents += "should" -> JsArray(termsRecommendationsQuery:_*)
+
+          query.filter.foreach { q =>
+            boolQueryComponents += "filter" -> q
+          }
+
+          query.must_not.foreach { q =>
+            boolQueryComponents += "must_not" -> q
+          }
+
+          val boolQuery = JsObject(Map(
+            "bool" -> JsObject(boolQueryComponents)
+          ))
+
+          val q = boolQuery.prettyPrint
 
           esClient execute {
             search(indexName)
@@ -70,17 +76,23 @@ class RecommendationManagerImpl(esClient: ElasticClient, eventConfigService: Eve
           } map { result =>
             logger.info(s"execute query [$q]")
             val response = result.body.get
+            println(response)
             val docs = JsonParser(new StringBasedParserInput(response)).asJsObject
               .fields("hits").asJsObject.fields("hits").asInstanceOf[JsArray]
 
-            val recommendations = docs.elements.map {
-              _.asInstanceOf[JsObject].fields("_id").asInstanceOf[JsString].value
+            val recommendations = docs.elements.map { obj =>
+              val jsonObject = obj.asJsObject
+              val objectId = jsonObject.fields("_id").asInstanceOf[JsString].value
+              val fields = jsonObject.fields("_source").asJsObject.fields.get(propertiesField).map(_.asJsObject).getOrElse(JsObject.empty)
+              val score = jsonObject.fields("_score").asInstanceOf[JsNumber].value.toDouble
+              Recommendation(objectId, fields, score)
             }
-            Recommendation(recommendations)
+
+            recommendations
           } recover {
             case _: NoSuchElementException =>
               // no recommendations computed
-              Recommendation(Seq.empty)
+              Seq.empty
             case e =>
               logger.warn(s"failed to retrieve recommendations for query [$q]", e)
               throw e

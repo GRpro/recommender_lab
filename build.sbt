@@ -32,39 +32,39 @@ lazy val recommender = project.in(file("recommender"))
   .settings(
     name := "recommender"
   )
-  .dependsOn(common)
+  .dependsOn(common % "compile->compile;test->test")
 
 lazy val event_manager = project.in(file("event_manager"))
   .settings(commonSettings: _*)
   .settings(
     name := "event_manager"
   )
-  .dependsOn(common)
+  .dependsOn(common % "compile->compile;test->test")
 
 lazy val job_runner = project.in(file("job_runner"))
   .settings(commonSettings: _*)
   .settings(
     name := "job_runner"
   )
-  .dependsOn(common)
+  .dependsOn(common % "compile->compile;test->test")
 
 lazy val import_job = project.in(file("import_job"))
   .settings(commonSettings: _*)
-  .dependsOn(common)
+  .dependsOn(common % "compile->compile;test->test")
   .settings(
     name := "import_job"
   )
 
 lazy val export_job = project.in(file("export_job"))
   .settings(commonSettings: _*)
-  .dependsOn(common)
+  .dependsOn(common % "compile->compile;test->test")
   .settings(
     name := "export_job"
   )
 
 lazy val similarity_job = project.in(file("similarity_job"))
   .settings(commonSettings: _*)
-  .dependsOn(common)
+  .dependsOn(common % "compile->compile;test->test")
   .settings(
     name := "similarity_job"
   )

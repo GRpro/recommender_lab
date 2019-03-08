@@ -1,4 +1,5 @@
-package lab.reco.common.event
+package lab.reco.event
+
 
 import com.sksamuel.elastic4s.http.ElasticClient
 import spray.json.JsObject
@@ -31,7 +32,7 @@ case class Event(subjectId: String,
 case class FromElasticException(message: String) extends RuntimeException(message)
 
 
-trait EventManagerService {
+trait EventManager {
 
   /* events */
 
@@ -100,9 +101,9 @@ trait EventManagerService {
 }
 
 
-object EventManagerService {
+object EventManager {
 
   def apply(esClient: ElasticClient)
-           (implicit executionContext: ExecutionContext): EventManagerService = new EventManagerImpl(esClient)
+           (implicit executionContext: ExecutionContext): EventManager = new EventManagerImpl(esClient)
 
 }

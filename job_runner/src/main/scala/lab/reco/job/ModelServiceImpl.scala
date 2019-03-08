@@ -80,6 +80,7 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
                 }
               }
 
+              // sequential run is used because we do want to avoid conflicts by updating the same document concurrently
               val result = indicators
                 .foldLeft(Future.successful())( runImport )
 

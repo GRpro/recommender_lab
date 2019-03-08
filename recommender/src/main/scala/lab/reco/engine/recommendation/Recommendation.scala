@@ -1,3 +1,5 @@
 package lab.reco.engine.recommendation
 
-case class Recommendation(objectIds: Seq[String])
+import spray.json.JsObject
+
+case class Recommendation(objectId: String, objectProperties: JsObject, score: Double)

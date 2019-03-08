@@ -8,8 +8,6 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided,
 
-  "org.scalatest" %% "scalatest" % "2.2.2" % Test,
-
   // Mahout's Spark libs. They're custom compiled for Scala 2.11
   // and included in the local Maven repo in the .custom-scala-m2/repo resolver below
   "org.apache.mahout" %% "mahout-math-scala" % mahoutVersion,
