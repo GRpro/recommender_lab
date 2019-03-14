@@ -1,5 +1,6 @@
 package lab.reco.batch
 
+import lab.reco.common.Protocol
 import org.apache.commons.cli.{BasicParser, CommandLine, HelpFormatter, Options, Option => CliOption}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{Row, SparkSession}
@@ -68,7 +69,9 @@ object ExportModelJob {
           Array.empty
         }
 
-        val recommendations = splittedRecommendations.map { _._1 }
+        val recommendations = splittedRecommendations
+          .map { _._1 }
+          .take(Protocol.Recommendation.recommendationsPerItem) // limit recommendations
         (objectId, recommendations)
     }.toDF("objectId", name).withColumn("id", $"objectId")
 
@@ -84,6 +87,7 @@ object ExportModelJob {
       .option("es.mapping.exclude", "id")
       .option("es.write.operation", "upsert")
       .option("es.update.retry.on.conflict", "5")
+      .option("es.batch.write.retry.count", "5")
       .mode("append")
       .option("es.nodes", esUrl)
       .save(esIndexType)

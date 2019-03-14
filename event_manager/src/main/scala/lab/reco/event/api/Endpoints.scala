@@ -128,6 +128,20 @@ trait Endpoints extends JsonSupport {
         }
       }
     } ~
+      path("objects" / "updateMultiById") {
+        post {
+          entity(as[Seq[ObjectUpdate]]) { objectUpdates =>
+            // TODO expect empty sequence
+            val replace = objectUpdates.head.replace
+            onComplete(eventManager.updateObjects(objectUpdates.map(upd => upd.objectId -> upd.objectProperties), replace)) {
+              case Success(result) =>
+                // TODO return reasonable result
+                complete(StatusCodes.OK)
+              case Failure(e) => complete(StatusCodes.BadRequest, e.getMessage)
+            }
+          }
+        }
+      } ~
       path("objects" / "getById") {
         entity(as[ObjectGet]) { objectGet =>
           post {

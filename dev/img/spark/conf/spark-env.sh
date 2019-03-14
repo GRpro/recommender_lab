@@ -64,7 +64,7 @@
 # - SPARK_IDENT_STRING  A string representing this instance of spark. (Default: $USER)
 # - SPARK_NICENESS      The scheduling priority for daemons. (Default: 0)
 # - SPARK_NO_DAEMONIZE  Run the proposed command in the foreground. It will not output a PID file.
-export SPARK_WORKER_MEMORY=2000M
+export SPARK_WORKER_MEMORY=2048M
 export SPARK_WORKER_CORES=2
 # For dynamic memory allocation
 # export SPARK_WORKER_OPTS="-Dspark.shuffle.service.enabled=true"

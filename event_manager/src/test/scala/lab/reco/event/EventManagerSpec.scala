@@ -89,6 +89,8 @@ class EventManagerSpec extends WordSpec with ElasticSearchFixture with Matchers 
         objectProperties = Some(propertiesI4.toJson.asJsObject),
         timestamp = None
       )
+
+      /* events */
       eventManagerService.processEvent(event1).await
       Thread.sleep(1000)
       eventManagerService.getObjectSchema().await shouldBe None
@@ -102,12 +104,45 @@ class EventManagerSpec extends WordSpec with ElasticSearchFixture with Matchers 
       eventManagerService.processEvent(event4).await
       Thread.sleep(1000)
 
+      /* get */
+
       eventManagerService.getAllEventsCount().await shouldBe 4
 
       eventManagerService.getObject("i1").await shouldBe JsObject()
       eventManagerService.getObject("i2").await shouldBe propertiesI2.toJson.asJsObject
       eventManagerService.getObject("i3").await shouldBe propertiesI3.toJson.asJsObject
       eventManagerService.getObject("i4").await shouldBe propertiesI4.toJson.asJsObject
+
+      /* updates */
+
+      // no replace update
+      eventManagerService.updateObject("i2", Map("p4" -> "val4").toJson.asJsObject, replace = false).await shouldBe true
+      Thread.sleep(1000)
+      eventManagerService.getObject("i2").await shouldBe (propertiesI2 ++ Map("p4" -> "val4")).toJson.asJsObject
+      // replace update
+      eventManagerService.updateObject("i2", Map("p3" -> false).toJson.asJsObject, replace = true).await shouldBe true
+      Thread.sleep(1000)
+      eventManagerService.getObject("i2").await shouldBe Map("p3" -> false).toJson.asJsObject
+
+      // replace update
+      eventManagerService.updateObjects(Seq(
+        "i2" -> Map("p2" -> 3.14).toJson.asJsObject,
+        "i3" -> Map("p2" -> 3.14).toJson.asJsObject
+      ), replace = true).await
+      Thread.sleep(1000)
+      eventManagerService.getObject("i2").await shouldBe Map[String, Any]("p2" -> 3.14).toJson.asJsObject
+      eventManagerService.getObject("i3").await shouldBe Map[String, Any]("p2" -> 3.14).toJson.asJsObject
+
+      // no replace update
+      eventManagerService.updateObjects(Seq(
+        "i2" -> Map("p3" -> false).toJson.asJsObject,
+        "i3" -> Map("p3" -> false).toJson.asJsObject
+      ), replace = false).await
+      Thread.sleep(1000)
+      eventManagerService.getObject("i2").await shouldBe Map[String, Any]("p2" -> 3.14, "p3" -> false).toJson.asJsObject
+      eventManagerService.getObject("i3").await shouldBe Map[String, Any]("p2" -> 3.14, "p3" -> false).toJson.asJsObject
+
+      /* delete */
 
       eventManagerService.deleteObject("i2").await shouldBe true
       Thread.sleep(1000)

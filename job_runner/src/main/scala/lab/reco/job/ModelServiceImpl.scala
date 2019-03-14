@@ -11,19 +11,15 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process._
 import scala.util.Try
 
-class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: RunnerConfig)
-                      (implicit executionContext: ExecutionContext)
-  extends ModelService
-    with Timed
-    with LazyLogging {
 
-  private implicit var jobInfo: Option[Job] = None
-
-  private def canStartNewJob: Boolean = jobInfo.forall { job =>
-    job.isFailed || job.isFinished
-  }
+trait ModelOperations {
+  def runExportEvents(): Future[Long]
+  def runTrainModel(hdfsBasePath: String, indicators: List[String]): Future[Long]
+  def runImportModel(modelPath: String, esTypeName: String, fieldName: String): Future[Long]
+}
 
 
+class ModelOperationsImpl(runnerConfig: RunnerConfig)(implicit executionContext: ExecutionContext) extends ModelOperations with LazyLogging {
   private def executeCommand(cmd: String): Long = {
     val code = cmd ! ProcessLogger(s => logger.debug(s))
     if (code != 0) {
@@ -32,22 +28,41 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
     System.currentTimeMillis() // return command execution finish time
   }
 
-  private def runExportEvents(): Future[Long] = Future {
+  def runExportEvents(): Future[Long] = Future {
     val command = s"${runnerConfig.exportEventsScriptPath}"
     logger.info(s"export events to HDFS command [$command]")
-    executeCommand(command)
+    val result = executeCommand(command)
+    logger.info(s"export events to HDFS finished")
+    result
   }
 
-  private def runTrainModel(hdfsBasePath: String, indicators: List[String]): Future[Long] = Future {
+  def runTrainModel(hdfsBasePath: String, indicators: List[String]): Future[Long] = Future {
     val command = s"${runnerConfig.trainModelScriptPath} $hdfsBasePath ${indicators.mkString(",")}"
     logger.info(s"train model command [$command]")
-    executeCommand(command)
+    val result = executeCommand(command)
+    logger.info(s"train model finished")
+    result
   }
 
-  private def runImportModel(modelPath: String, esTypeName: String, fieldName: String): Future[Long] = Future {
+  def runImportModel(modelPath: String, esTypeName: String, fieldName: String): Future[Long] = Future {
     val command = s"${runnerConfig.exportModelScriptPath} $modelPath $esTypeName $fieldName"
     logger.info(s"export model to ElasticSearch command [$command]")
-    executeCommand(command)
+    val result = executeCommand(command)
+    logger.info(s"export model to ElasticSearch finished")
+    result
+  }
+}
+
+class ModelServiceImpl(eventConfigService: EventConfigService, modelOperations: ModelOperations)
+                      (implicit executionContext: ExecutionContext)
+  extends ModelService
+    with Timed
+    with LazyLogging {
+
+  private[job] implicit var jobInfo: Option[Job] = None
+
+  private def canStartNewJob: Boolean = jobInfo.forall { job =>
+    job.isFailed || job.isFinished
   }
 
   override def train(): Future[Task] = {
@@ -61,10 +76,10 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
 
           jobInfo = Some(newJob)
 
-          runExportEvents()
+          modelOperations.runExportEvents()
             .exportEventsFinished(newJob)
             .flatMap {
-              _ => runTrainModel(s"/model", indicators)
+              _ => modelOperations.runTrainModel(s"/model", indicators)
             }
             .trainModelFinished(newJob)
             .flatMap { _ =>
@@ -75,7 +90,7 @@ class ModelServiceImpl(eventConfigService: EventConfigService, runnerConfig: Run
 
               def runImport(previous: Future[Unit], indicator: String): Future[Unit] = {
                 previous.flatMap { _ =>
-                  runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator, newModelVersion.toString))
+                  modelOperations.runImportModel(s"/model/similarity-matrix-$indicator", s"$indexName/$typeName", recommendationsField(indicator, newModelVersion.toString))
                     .importModelFinished(newJob, indicator)
                 }
               }

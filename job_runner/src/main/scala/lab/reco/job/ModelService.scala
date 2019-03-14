@@ -16,5 +16,5 @@ trait ModelService {
 
 object ModelService {
   def apply(eventConfigService: EventConfigService, runnerConfig: RunnerConfig)(implicit executionContext: ExecutionContext): ModelService =
-    new ModelServiceImpl(eventConfigService, runnerConfig)
+    new ModelServiceImpl(eventConfigService, new ModelOperationsImpl(runnerConfig))
 }

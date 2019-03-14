@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
 
 // libraryDependencies += "com.github.swagger-akka-http" %% "swagger-akka-http" % "1.0.0"
 
-
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2" % Test
+libraryDependencies += "org.scalamock" %% "scalamock" % "4.1.0" % Test
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % Test
 libraryDependencies += "pl.allegro.tech" % "embedded-elasticsearch" % "2.7.0" % Test
 

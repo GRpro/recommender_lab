@@ -27,8 +27,11 @@ version: '3'
 
 services:
 
+
   event_manager:
     build: ./img
+    depends_on:
+      - elasticsearch
     networks:
       - lab
     expose:
@@ -42,6 +45,8 @@ services:
 
   recommender:
     build: ./img
+    depends_on:
+      - elasticsearch
     networks:
       - lab
     expose:
@@ -130,7 +135,7 @@ services:
     environment:
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
       - "xpack.graph.enabled=false"
       - "xpack.ml.enabled=false"
       - "xpack.monitoring.enabled=false"
@@ -155,7 +160,7 @@ services:
 #    environment:
 #      - cluster.name=docker-cluster
 #      - bootstrap.memory_lock=true
-#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
 #      - "discovery.zen.ping.unicast.hosts=elasticsearch"
 #      - "xpack.graph.enabled=false"
 #      - "xpack.ml.enabled=false"

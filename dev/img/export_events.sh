@@ -3,7 +3,7 @@
 /usr/local/spark/bin/spark-submit \
 --class lab.reco.batch.ImportEventsJob \
 --master spark://spark-master:7071 \
---executor-memory 900M \
+--executor-memory 512M \
 --executor-cores 1 \
 --num-executors 4 \
 /usr/local/import_job-assembly-0.1.jar \

@@ -18,6 +18,8 @@ object Protocol {
     final val typeName: String = "info"
     final val propertiesField: String = "properties"
 
+    final val recommendationsPerItem = 100
+
     private final val recommendationFieldPrefix = "recommendation"
 
 //    final def isRecommendationField(fieldName: String) =

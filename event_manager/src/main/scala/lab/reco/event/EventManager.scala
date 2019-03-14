@@ -93,6 +93,8 @@ trait EventManager {
 
   def updateObject(objectId: String, objectProperties: JsObject, replace: Boolean): Future[Boolean]
 
+  def updateObjects(updates: Seq[(String, JsObject)], replace: Boolean): Future[Unit]
+
   def deleteObject(objectId: String): Future[Boolean]
 
   def deleteObjects(jsonQuery: String): Future[Int]

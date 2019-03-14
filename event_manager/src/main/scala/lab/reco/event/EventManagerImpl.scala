@@ -17,9 +17,10 @@ import scala.util.Try
 
 class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: ExecutionContext) extends EventManager with LazyLogging {
 
-  private final val client: HttpClient = esClient.client
-
-  createMapping()
+  private final lazy val client: HttpClient = {
+    createMapping()
+    esClient.client
+  }
 
   private def createMapping(): Unit = {
     esClient
@@ -314,15 +315,61 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
     }
   }
 
+  // TODO protect against setting field as []
+  def withSquareBrackets(json: JsObject): String = {
+    val jsonStr = json.compactPrint
+    val result = s"[${jsonStr.substring(1, jsonStr.length - 1).replace("\"", "\\\"")}]"
+    if (result == "[]") throw new IllegalArgumentException("cannot set [] in update with replace mode")
+    else result
+  }
+
+  override def updateObjects(updates: Seq[(String, JsObject)], replace: Boolean): Future[Unit] = {
+
+    def updateReq(objectId: String) =
+      s"""{ "update" : {"_id" : "$objectId", "_type" : "${Recommendation.typeName}", "_index" : "${Recommendation.indexName}", "retry_on_conflict" : 5} }""".stripMargin
+
+    val entity = updates.map {
+      case (objectId, properties) =>
+
+        val entity =
+          if (replace) {
+            s"""${updateReq(objectId)}
+               |{ "script" : "ctx._source.${Recommendation.propertiesField} = ${withSquareBrackets(properties)}", "upsert" : {}, "scripted_upsert" : true }
+               |""".stripMargin
+          } else {
+            s"""${updateReq(objectId)}
+               |{ "doc" : { "${Recommendation.propertiesField}": $properties }, "doc_as_upsert" : true }
+               |""".stripMargin
+          }
+        entity
+    }.mkString("")
+
+    // , Map("Content-Type" -> "application/x-ndjson")
+    println(entity)
+    val request = ElasticRequest("POST", "_bulk", HttpEntity(entity))
+
+    val promise = Promise[HttpResponse]()
+    client.send(request, {
+      case Left(e) => promise.failure(e)
+      case Right(result) => promise.success(result)
+    })
+
+    promise
+      .future.map { response =>
+      logger.info(s"update object returned response $response")
+      response.statusCode match {
+        case 200 | 201 =>
+          true
+        case _ =>
+          throw FromElasticException(response.toString)
+      }
+    }
+  }
 
   def updateObject(objectId: String, objectProperties: JsObject, replace: Boolean): Future[Boolean] = {
     val entity = if (replace) {
 
-      // TODO protect against setting field as []
-      def withSquareBrackets(json: JsObject): String = {
-        val jsonStr = json.compactPrint
-        s"[${jsonStr.substring(1, jsonStr.length - 1).replace("\"", "\\\"")}]"
-      }
+
 
       HttpEntity(
         s"""
