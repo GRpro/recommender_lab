@@ -9,11 +9,11 @@ import org.elasticsearch.client.RestClientBuilder.{HttpClientConfigCallback, Req
 
 import scala.concurrent.ExecutionContext
 
-object ESClientProvider {
+object ElasticClientProvider {
 
-  def createESClient(esUsername: String,
-                     esPassword: String,
-                     esClientUri: String)(implicit executionContext: ExecutionContext): ElasticClient = {
+  def createElasticClient(esUsername: String,
+                          esPassword: String,
+                          esClientUri: String)(implicit executionContext: ExecutionContext): ElasticClient = {
     val provider = {
       val provider = new BasicCredentialsProvider
       val credentials = new UsernamePasswordCredentials(

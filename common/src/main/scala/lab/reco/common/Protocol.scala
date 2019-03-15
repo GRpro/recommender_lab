@@ -18,21 +18,17 @@ object Protocol {
     final val typeName: String = "info"
     final val propertiesField: String = "properties"
 
-    final val recommendationsPerItem = 100
-
     private final val recommendationFieldPrefix = "recommendation"
-
-//    final def isRecommendationField(fieldName: String) =
-//      fieldName.startsWith(recommendationFieldPrefix)
 
     final def recommendationsField(indicator: String, modelVersion: String): String =
       s"${recommendationFieldPrefix}_${indicator}_$modelVersion"
   }
 
   object Metadata {
+    final val initialModelVersion = 0
+
     final val indexName: String = "metadata"
     final val typeName: String = "metadata"
-
     final val primaryIndicatorField: String = "primaryIndicator"
     final val secondaryIndicatorsField: String = "secondaryIndicators"
     final val indicatorsConfigId: String = "indicators_config"

@@ -100,6 +100,16 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       .map(_ => ())
   }
 
+
+  private def sendRequestAsync(request: ElasticRequest): Future[HttpResponse] = {
+    val promise = Promise[HttpResponse]()
+    client.send(request, {
+      case Left(e) => promise.failure(e)
+      case Right(result) => promise.success(result)
+    })
+    promise.future
+  }
+
   /**
     * Delete events matching predicate
     * @param jsonQuery ElasticSearch json query
@@ -115,20 +125,8 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       """.stripMargin)
     )
 
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise.future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"delete by query returned response [$response]")
-
-      response.statusCode match {
-        case 200 =>
-
-        case _ =>
-      }
       val entity = JsonParser(new StringBasedParserInput(response.entity.get.content)).asJsObject
       val deleted = entity.fields("deleted").asInstanceOf[JsNumber].value.toInt
       val errorsList = entity.fields("failures").asInstanceOf[JsArray].elements.toList
@@ -164,13 +162,7 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       """.stripMargin)
     )
 
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise.future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"count events response [$response]")
       val entity = JsonParser(new StringBasedParserInput(response.entity.get.content)).asJsObject
       val count = entity.fields("count").asInstanceOf[JsNumber].value.toInt
@@ -202,13 +194,7 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       """.stripMargin)
     )
 
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise.future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"get events response [$response]")
       val entity = JsonParser(new StringBasedParserInput(response.entity.get.content)).asJsObject
 
@@ -240,25 +226,10 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
 
   private def defaultEventTimestamp: Long = System.currentTimeMillis()
 
-
-  //  override def deleteAllEvents(): Future[Unit] = {
-  //    esClient execute deleteIndex(EventProtocol.indexName) map { result =>
-  //      logger.info(s"delete index [${EventProtocol.indexName}] result [$result]")
-  //    } logFailure(logger, s"delete index operation [${EventProtocol.indexName}] failed") map { _ =>
-  //      createMapping()
-  //    }
-  //  }
-
   def getObjectSchema(): Future[Option[JsObject]] = {
     val request = ElasticRequest("GET", s"${Recommendation.indexName}/_mapping/${Recommendation.typeName}")
 
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise.future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"get object mapping response [$response]")
       response.statusCode match {
         case 200 =>
@@ -293,14 +264,7 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       )
     )
 
-    println(request)
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise.future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"set object mapping response [$response]")
       response.statusCode match {
         case 200 =>
@@ -315,15 +279,14 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
     }
   }
 
-  // TODO protect against setting field as []
   def withSquareBrackets(json: JsObject): String = {
     val jsonStr = json.compactPrint
     val result = s"[${jsonStr.substring(1, jsonStr.length - 1).replace("\"", "\\\"")}]"
-    if (result == "[]") throw new IllegalArgumentException("cannot set [] in update with replace mode")
+    if (result == "[]") throw new IllegalArgumentException("cannot set [] in update with replace mode") // the field is treated as empty array instead of empty object
     else result
   }
 
-  override def updateObjects(updates: Seq[(String, JsObject)], replace: Boolean): Future[Unit] = {
+  override def updateObjects(updates: Seq[(String, JsObject)], replace: Boolean): Future[Unit] = Future {
 
     def updateReq(objectId: String) =
       s"""{ "update" : {"_id" : "$objectId", "_type" : "${Recommendation.typeName}", "_index" : "${Recommendation.indexName}", "retry_on_conflict" : 5} }""".stripMargin
@@ -343,19 +306,11 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
           }
         entity
     }.mkString("")
-
-    // , Map("Content-Type" -> "application/x-ndjson")
-    println(entity)
+    entity
+  }.flatMap { entity =>
     val request = ElasticRequest("POST", "_bulk", HttpEntity(entity))
 
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise
-      .future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"update object returned response $response")
       response.statusCode match {
         case 200 | 201 =>
@@ -366,11 +321,8 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
     }
   }
 
-  def updateObject(objectId: String, objectProperties: JsObject, replace: Boolean): Future[Boolean] = {
-    val entity = if (replace) {
-
-
-
+  def updateObject(objectId: String, objectProperties: JsObject, replace: Boolean): Future[Boolean] = Future {
+    if (replace) {
       HttpEntity(
         s"""
            |{
@@ -392,19 +344,13 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       """.stripMargin
       )
     }
+  }.flatMap { entity =>
 
     val endpoint = s"${Recommendation.indexName}/${Recommendation.typeName}/$objectId/_update"
     val params = Map("retry_on_conflict" -> 5)
     val request = ElasticRequest("POST", endpoint, params, entity)
 
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise
-      .future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"update object returned response $response")
       response.statusCode match {
         case 200 | 201 =>
@@ -446,13 +392,7 @@ class EventManagerImpl(esClient: ElasticClient)(implicit executionContext: Execu
       """.stripMargin)
     )
 
-    val promise = Promise[HttpResponse]()
-    client.send(request, {
-      case Left(e) => promise.failure(e)
-      case Right(result) => promise.success(result)
-    })
-
-    promise.future.map { response =>
+    sendRequestAsync(request).map { response =>
       logger.info(s"delete by query returned response [$response]")
       response.statusCode match {
         case 200 =>

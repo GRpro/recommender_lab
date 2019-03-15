@@ -43,11 +43,22 @@ WORKDIR /usr/local
 ADD spark/ $SPARK_HOME/
 
 ADD tmp/export_job-assembly-0.1.jar     /usr/local/
+
 ADD tmp/import_job-assembly-0.1.jar     /usr/local/
+
 ADD tmp/similarity_job-assembly-0.1.jar /usr/local/
-ADD tmp/job_runner-assembly-0.1.jar     /usr/local/
-ADD tmp/recommender-assembly-0.1.jar    /usr/local/
-ADD tmp/event_manager-assembly-0.1.jar  /usr/local/
+
+RUN mkdir -p /usr/local/job_runner/
+ADD job_runner/application.conf         /usr/local/job_runner/
+ADD tmp/job_runner-assembly-0.1.jar     /usr/local/job_runner/
+
+RUN mkdir -p /usr/local/recommender/
+ADD recommender/application.conf        /usr/local/recommender/
+ADD tmp/recommender-assembly-0.1.jar    /usr/local/recommender/
+
+RUN mkdir -p /usr/local/event_manager/
+ADD event_manager/application.conf      /usr/local/event_manager/
+ADD tmp/event_manager-assembly-0.1.jar  /usr/local/event_manager/
 
 RUN mkdir -p /usr/local/scripts
 ADD export_events.sh /usr/local/scripts/

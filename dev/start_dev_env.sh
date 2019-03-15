@@ -14,4 +14,3 @@ cp $DIR/../recommender/target/scala-2.11/recommender-assembly-0.1.jar       $DIR
 # TODO remove --build and build images before with included jars
 docker-compose -f "$DIR/docker-compose-dev.yaml" up -d --build $@
 docker-compose -f "$DIR/docker-compose-dev.yaml" scale spark-slave=2
-docker-compose -f "$DIR/docker-compose-dev.yaml" logs -f

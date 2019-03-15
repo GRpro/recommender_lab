@@ -5,7 +5,7 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.typesafe.scalalogging.LazyLogging
-import lab.reco.common.ESClientProvider
+import lab.reco.common.ElasticClientProvider
 import lab.reco.common.model.EventConfigService
 import lab.reco.engine.recommendation.RecommendationManager
 import lab.reco.engine.api.Endpoints
@@ -19,7 +19,7 @@ object WebServer extends LazyLogging {
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
-    val esClient: ElasticClient = ESClientProvider.createESClient(ConfigStore.esUsername, ConfigStore.esPassword, ConfigStore.esClientUri)
+    val esClient: ElasticClient = ElasticClientProvider.createElasticClient(ConfigStore.esUsername, ConfigStore.esPassword, ConfigStore.esClientUri)
     val eventConfigService: EventConfigService = EventConfigService(esClient)
 
     val recommenderManager: RecommendationManager = RecommendationManager(esClient, eventConfigService)

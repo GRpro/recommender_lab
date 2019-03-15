@@ -1,33 +1,8 @@
 version: '3'
 
-# Memory resource allocation:
-#
-# - spark-master              (total 2000M)
-# 64M - job_runner
-# 256M - spark-daemon
-# 1500M - spark-driver
-#
-#
-# - spark-worker              (total 2500M)
-# 256M - spark-daemon
-# 2000M - memory for executors
-#
-#
-# - elasticsearch
-# ???
-#
-#
-# - hdfs
-#
-# ???
-#
-#
-# TOTAL:
-# todo 5000M + 500M (reservation) + elasticsearch + hdfs < 7000M (minimal memory for running installation)
-
 services:
 
-
+  # Memory expectations 300M
   event_manager:
     build: ./img
     depends_on:
@@ -40,9 +15,9 @@ services:
       - "5555:5555"
     command: >
       bash -c "service ssh start
-      && java -Xmx256M -cp /usr/local/event_manager-assembly-0.1.jar lab.reco.event.WebServer"
+      && java -Xmx256M -Dconfig.file=/usr/local/event_manager/application.conf -cp /usr/local/event_manager/event_manager-assembly-0.1.jar lab.reco.event.WebServer"
 
-
+  # Memory expectations 300M
   recommender:
     build: ./img
     depends_on:
@@ -55,7 +30,7 @@ services:
       - "5556:5556"
     command: >
       bash -c "service ssh start
-      && java -Xmx256M -cp /usr/local/recommender-assembly-0.1.jar lab.reco.engine.WebServer"
+      && java -Xmx256M -Dconfig.file=/usr/local/recommender/application.conf -cp /usr/local/recommender/recommender-assembly-0.1.jar lab.reco.engine.WebServer"
 
 
   # TODO run in distributed mode
@@ -66,8 +41,6 @@ services:
     expose:
       - "9000"
     ports:
-    # TODO remove exposing 9000 port
-      - "9000:9000"
       - "50070:50070"
     command: >
       bash -c "service ssh start
@@ -75,6 +48,9 @@ services:
       && /usr/local/hadoop/sbin/start-dfs.sh
       && tail -f /usr/local/hadoop/logs/*"
 
+  # Memory expectations 2500M
+  # 256M - spark-daemon
+  # 2048M - memory for executors
   spark-slave:
     build: ./img
     depends_on:
@@ -83,7 +59,7 @@ services:
       - hdfs
       - elasticsearch
     ports:
-      - "8081-8082:8081" # Only for 2 slaves
+      - "8081-8082:8081" # Open UI ports for slaves (2 slaves)
     deploy:
       resources:
         limits:
@@ -100,6 +76,10 @@ services:
       && /usr/local/spark/sbin/start-slave.sh spark://spark-master:7071
       && tail -f /usr/local/spark/logs/*"
 
+  # Memory expectations 2000M
+  # 64M - job_runner
+  # 256M - spark-daemon
+  # 1500M - spark-driver
   spark-master:
     build: ./img
     ports:
@@ -125,10 +105,9 @@ services:
     command: >
       bash -c "service ssh start
       && /usr/local/spark/sbin/start-master.sh
-      && java -Xmx64M -cp /usr/local/job_runner-assembly-0.1.jar lab.reco.job.WebServer"
+      && java -Xmx64M -Dconfig.file=/usr/local/job_runner/application.conf -cp /usr/local/job_runner/job_runner-assembly-0.1.jar lab.reco.job.WebServer"
 
-    # && tail -f /usr/local/spark/logs/*"
-
+  # Memory expectations 1100M
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
     container_name: elasticsearch

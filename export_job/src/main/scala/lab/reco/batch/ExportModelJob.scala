@@ -1,6 +1,5 @@
 package lab.reco.batch
 
-import lab.reco.common.Protocol
 import org.apache.commons.cli.{BasicParser, CommandLine, HelpFormatter, Options, Option => CliOption}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{Row, SparkSession}
@@ -71,7 +70,6 @@ object ExportModelJob {
 
         val recommendations = splittedRecommendations
           .map { _._1 }
-          .take(Protocol.Recommendation.recommendationsPerItem) // limit recommendations
         (objectId, recommendations)
     }.toDF("objectId", name).withColumn("id", $"objectId")
 
