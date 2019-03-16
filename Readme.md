@@ -1,16 +1,50 @@
-Recommender service lab
-=======================
+I created this project with the purpose of learning recommender systems and improve software design skills. Also I wanted to make something useful. Even though it's a pet project I believe it can be used to solve real information filtering problems which are commonly faced in the E-Commerce world. Feel free to contact me grigoriyroghkov@gmail.com.
 
-This project aims to provide a recommender service which can be run on premise
 
-Ports:
+## What is Recommender Lab ?
 
-`5555` - event manager
+Recommender systems play a major role in today's ecommerce industry. Recommender systems suggest items to users such as books, movies, videos, electronic products and many other products in general. Creating a new recommender is costly so companies try to use existing solutions. 
 
-`5556` - recommender
+This project aims to provide a RESTful service which accepts events' data and items' properties and provide recomendations. 
+Item consists of a set of properties which can be configured. Event means some action made by user towards the item, this action should have a preference evidence.
 
-`5557` - job runner
+Modified cross-occurrence correlation algoritm from Apache Mahout alows to use any number of indicators (buy, add to cart, view etc.) to predict user preferences. Model is used to 
 
+## Architecture
+
+The project approaches microservice architecture. Apache Spark and Apache Mahout is used to create item similarity model. Trained model it deployed on ElasticSearch, which provides a benefit of fast response for recommendations as well as using it's rich query language to apply business filters to ranked lists of recommendations.
+docker-compose is utilized to deploy services.
+
+
+### Event Manager
+Service responsible for managing events and item properties.
+Runs on port `5555`.
+
+#### API 
+
+
+### Recommender
+Service responsible for providing recommendations
+Runs on port `5556`.
+
+#### API
+
+
+### Job Runner 
+Manages model training process.
+Runs on port `5556`.
+
+#### API
+
+
+### Spark 
+
+### ElasticSearch
+
+### HDFS
+
+
+The project consists of the set of services deployed by docker-compose.
 
 Characteristics
 ===============
