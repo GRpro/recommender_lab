@@ -1,4 +1,4 @@
-I created this project with the purpose of learning recommender systems and improve software design skills. Also I wanted to make something useful. Even though it's a pet project I believe it can be used to solve real information filtering problems which are commonly faced in the E-Commerce world. Feel free to contact me grigoriyroghkov@gmail.com.
+I created this project with the purpose of learning recommender systems and improve software design skills. Also I wanted to create something useful. Even though it's a pet project I believe it can be used to solve real information filtering problems which are commonly faced in the E-Commerce world. Feel free to contact me <span style="color:blue">*grigoriyroghkov@gmail.com*</span>.
 
 
 ## What is Recommender Lab ?
@@ -12,47 +12,454 @@ Modified cross-occurrence correlation algoritm from Apache Mahout alows to use a
 
 ## Architecture
 
-The project approaches microservice architecture. Apache Spark and Apache Mahout is used to create item similarity model. Trained model it deployed on ElasticSearch, which provides a benefit of fast response for recommendations as well as using it's rich query language to apply business filters to ranked lists of recommendations.
+The project approaches microservice architecture. Apache Spark and Apache Mahout is used to create item similarity model. The model is trained offline periodically. Trained model it deployed on ElasticSearch, which provides a benefit of fast response for recommendations as well as using it's rich query language to apply business filters to ranked lists of recommendations.
 docker-compose is utilized to deploy services.
 
 
 ### Event Manager
 Service responsible for managing events and item properties.
-Runs on port `5555`.
-
-#### API 
-
 
 ### Recommender
-Service responsible for providing recommendations
-Runs on port `5556`.
-
-#### API
-
+Service responsible for providing recommendations.
 
 ### Job Runner 
-Manages model training process.
-Runs on port `5556`.
-
-#### API
-
+Service conducts model training process, submits Spark jobs and allows to poll for status.
 
 ### Spark 
+Computes model.
 
 ### ElasticSearch
+Serves the model, returns recommendations by queries.
 
 ### HDFS
+Source and target data source for Spark, stores events and intermediate representation of a model.
+
+## REST API
+
+### Event Manager
+Runs on port `5555`.
+
+#### Create event
+Object properties may be passed along with each event, if object has existing properties they are replaced.
+
+*Request:*
+
+```
+POST /api/events/createOne
+```
+
+*Response:*
+
+```
+
+```
 
 
-The project consists of the set of services deployed by docker-compose.
+#### Create events
 
-Characteristics
-===============
+*Request:*
 
-Up to 500 object attributes are supported
+```
+POST /api/events/createMany
+```
 
-Test with retailrocket E-commerce dataset
-=========================================
+*Response:*
+
+```
+
+```
+
+#### Count all events
+
+*Request:*
+
+```
+POST /api/events/countAll
+```
+
+*Response:*
+
+```
+
+```
+
+#### Count events by query
+
+*Request:*
+
+```
+POST /api/events/countByQuery
+```
+
+*Response:*
+
+```
+
+```
+
+#### Get events by query
+
+
+*Request:*
+
+```
+POST /api/events/getByQuery
+```
+
+*Response:*
+
+```
+
+```
+
+#### Delete all events
+
+
+*Request:*
+
+```
+POST /api/events/deleteAll
+```
+
+*Response:*
+
+```
+
+```
+
+#### Delete events by query
+
+
+*Request:*
+
+```
+POST /api/events/deleteAll
+```
+
+*Response:*
+
+```
+
+```
+
+#### Set object schema
+Set object schema or extend existing to add new fields but don't modify existing
+
+*Request:*
+
+```
+POST /api/objects/schema
+```
+
+*Response:*
+
+```
+
+```
+
+#### Get object schema
+
+*Request:*
+
+```
+GET /api/objects/schema
+```
+
+*Response:*
+
+```
+
+```
+
+
+#### Update object
+Update or insert single object
+
+*Request:*
+
+```
+POST /api/objects/updateById
+```
+
+*Response:*
+
+```
+
+```
+
+
+#### Update multiple objects
+Update or insert nultiple objects
+
+*Request:*
+
+```
+POST /api/objects/updateMultiById
+```
+
+*Response:*
+
+```
+
+```
+
+#### Get object
+Get object by id
+
+*Request:*
+
+```
+GET /api/objects/getById
+```
+
+*Response:*
+
+```
+
+```
+
+#### Delete object
+Delete object by id
+
+*Request:*
+
+```
+POST /api/objects/deleteById
+```
+
+*Response:*
+
+```
+
+```
+
+#### Delete all objects
+Delete all objects preserving schema
+
+*Request:*
+
+```
+POST /api/objects/deleteAll
+```
+
+*Response:*
+
+```
+
+```
+
+
+#### Delete objects by query
+Delete objects by query
+
+*Request:*
+
+```
+POST /api/objects/deleteByQuery
+```
+
+*Response:*
+
+```
+
+```
+
+
+
+#### Set indicators
+Configure preference indicators for model
+
+*Request:*
+
+```
+POST /api/model
+```
+
+*Response:*
+
+```
+
+```
+
+#### Get indicators
+Get configured preference indicators for model
+
+*Request:*
+
+```
+GET /api/model
+```
+
+*Response:*
+
+```
+
+```
+
+### Job Runner
+Runs on port `5556`.
+
+#### Train model
+*Request:*
+```
+POST /api/model/train
+No body
+```
+*Response:*
+```
+{
+  "id": "export_events",
+  "children": [
+    {
+      "id": "train_model",
+      "children": [
+        {
+          "id": "import_model_transaction",
+          "children": [
+            
+          ]
+        },
+        {
+          "id": "import_model_addtocart",
+          "children": [
+            
+          ]
+        },
+        {
+          "id": "import_model_view",
+          "children": [
+            
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+
+#### Get train model status
+*Request:*
+```
+GET /api/model/train
+```
+*Response:*
+
+The same as for model train submission
+
+```
+{
+  "id": "export_events",
+  "children": [
+    {
+      "id": "train_model",
+      "children": [
+        {
+          "id": "import_model_transaction",
+          "children": [
+            
+          ]
+        },
+        {
+          "id": "import_model_addtocart",
+          "children": [
+            
+          ]
+        },
+        {
+          "id": "import_model_view",
+          "children": [
+            
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Recommender
+Runs on port `5556`.
+
+#### Create recommendations
+Recommend items based on user history. filter and must_not parts of a query are corresponding properties of [bool ElasticSearch query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html).
+Response contains ranked list of recommended items with item properties.
+
+*Request:*
+
+```
+{
+  "history": { 
+    "<indicator_1>": ["itemId1", "itemId2", ...],
+    "<indicator_2>": ["itemId3", "itemId4", ...],
+    "<indicator_3>": ["itemId5", "itemId6", ...]
+  },
+  "filter": <filter part of bool query>,
+  "must_not": <must_not part of bool query>,
+  ["length": <number>]
+}
+```
+
+*Response:*
+
+```
+[
+  {
+    "objectId": "<recommended_itemId_1>",
+    "objectProperties": {
+      "k1": <int>,
+      "k2": "<string>
+    },
+    "score": <int>
+  },
+  {
+    "objectId": "<recommended_itemId_2>",
+    "objectProperties": {
+      "k1": <int>,
+      "k2": "<string>,
+      "k3": <bool>
+    },
+    "score": <int>
+  },
+  ...
+]
+```
+
+#### Delete recommendations and object data
+Removes all object data and recommendations, should be used carefully.
+
+*Request:*
+
+```
+DELETE /api/recommendation
+```
+
+*Response:*
+
+```
+Status code OK - recommendations deleted
+```
+
+## User guide
+
+Project contains deployment scripts to run on docker-compose locally, you need 9GB of RAM to make the thing working. 
+The default deployment consists of the following services.
+
+```
+dev_spark-slave_2
+dev_spark-slave_1
+dev_spark-master_1
+dev_recommender_1
+dev_event_manager_1
+dev_hdfs_1
+elasticsearch
+```
+
+For larger deployments make changes to `./dev/docker-compose.yaml` file.
+Item properties are used to filter computed recommendations (e.g return all recommender men's T-Shirts of a red colour). This should be used to apply business rules. Up to 500 searcheable item properties are supported.
+
+
+### Test with retailrocket dataset
 
 Project provides some utils for setting up things locally.
 
@@ -129,7 +536,7 @@ Response:
   "number": 2756101
 }
 ```
-See objects schema
+See objects schema which was automatically inferred
 ```
 GET http://localhost:5555/api/objects/schema
 ```
@@ -188,4 +595,54 @@ POST http://localhost:5556/api/recommendation
     }
   }
 }
+```
+
+Returns me a list
+
+```
+[
+  {
+    "objectId": "111057",
+    "objectProperties": {
+      "categoryid": "1503",
+      "6": "668584"
+    },
+    "score": 2
+  },
+  {
+    "objectId": "253615",
+    "objectProperties": {
+      "49": "484024 661116 1257525",
+      "categoryid": "342",
+      "6": "1037891"
+    },
+    "score": 2
+  },
+  {
+    "objectId": "77514",
+    "objectProperties": {
+      "categoryid": "1051",
+      "6": "977762"
+    },
+    "score": 2
+  },
+  {
+    "objectId": "75490",
+    "objectProperties": {
+      "6": "203835",
+      "76": "769062",
+      "28": "150169 435459 16718",
+      "categoryid": "358"…
+    },
+    "score": 1
+  },
+  {
+    "objectId": "237244",
+    "objectProperties": {
+      "6": "160555 992429",
+      "categoryid": "745"
+    },
+    "score": 1
+  }
+]
 ```
