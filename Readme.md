@@ -15,8 +15,8 @@ Modified cross-occurrence correlation algoritm from Apache Mahout alows to use a
 The recommender system implemented in this project uses Cross Occurrece Correlation algorithm which allows using multiple indicators effectively. 
 
 Few links:
-- http://mahout.apache.org/users/recommender/intro-cooccurrence-spark.html
-- https://www.slideshare.net/pferrel/unified-recommender-39986309
+- (http://mahout.apache.org/users/recommender/intro-cooccurrence-spark.html)
+- (https://www.slideshare.net/pferrel/unified-recommender-39986309)
 
 
 ![alt text](https://github.com/GRpro/recommender_lab/blob/master/doc/high-level-arch.png)
