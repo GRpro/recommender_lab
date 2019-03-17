@@ -467,6 +467,7 @@ The system has been tested with Retailrocket dataset https://www.kaggle.com/reta
 
 1. Need to allocate 9Gb of RAM to docker. While running project please ensure that amount of free memory is available.
 2. Download the dataset from https://www.kaggle.com/retailrocket/ecommerce-dataset and unpack it in `<dataset_path>`
+
 ```
 ls -lh <dataset_path>/retailrocket-recommender-system-dataset/
 total 1941096
@@ -474,18 +475,23 @@ total 1941096
 -rwxr-xr-x@ 1 grygorii  staff    90M Mar 24  2017 events.csv
 -rwxr-xr-x@ 1 grygorii  staff   462M Mar 24  2017 item_properties_part1.csv
 -rwxr-xr-x@ 1 grygorii  staff   390M Mar 24  2017 item_properties_part2.csv
-
 ```
+
 3. assembly and deploy service
+
 ```
 $ cd <project_dir>/recommender_lab
 $ sbt assembly
 ```
+
 The following command on the first command takes a while as it builds images before starting the service
+
 ```
 $ ./dev/start_dev_env.sh
 ```
+
 See containers running
+
 ```
 $ docker ps
 CONTAINER ID        IMAGE                                                 COMMAND                  CREATED             STATUS              PORTS                                                                            NAMES
@@ -501,6 +507,7 @@ caf0ab9d42ff        dev_hdfs                                              "bash 
 4. Upload events, objects, and train model
 
 Configure indicators
+
 ```
 POST http://localhost:5555/api/model
 {
@@ -517,16 +524,20 @@ POST http://localhost:5555/api/model
   ]  
 }
 ```
+
 Upload events and item properties
 Helper script does the work. 
 Only first 100 props plus categoryid from the dataset are uploaded.
+
 ```
 $ python3 ./example/upload_ecom_dataset.py <dataset_path>/retailrocket-recommender-system-dataset/
 ...
 ...
 elapsed time 1097.7651262283325s: events 606.3574371337891s, props1 267.1118106842041s, props2 224.29587197303772s
 ```
+
 See events count
+
 ```
 POST http://localhost:5555/api/events/countAll
 No Body
@@ -536,17 +547,22 @@ Response:
   "number": 2756101
 }
 ```
+
 See objects schema which was automatically inferred
+
 ```
 GET http://localhost:5555/api/objects/schema
 ```
 
 Train model and poll for status until all tasks are finished
 for me it took 34 minutes
+
 ```
 POST http://localhost:5557/api/model/train
 ```
+
 Example of finished status
+
 ```
 GET http://localhost:5557/api/model/train
 
@@ -581,6 +597,7 @@ Response:
 ```
 
 Get recommendations
+
 ```
 POST http://localhost:5556/api/recommendation
 {
