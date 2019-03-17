@@ -12,27 +12,22 @@ Modified cross-occurrence correlation algoritm from Apache Mahout alows to use a
 
 ## Architecture
 
+The recommender system implemented in this project uses Cross Occurrece Correlation algorithm which allows using multiple indicators effectively. 
+
+Few links:
+- http://mahout.apache.org/users/recommender/intro-cooccurrence-spark.html
+- https://www.slideshare.net/pferrel/unified-recommender-39986309
+
 The project approaches microservice architecture. Apache Spark and Apache Mahout is used to create item similarity model. The model is trained offline periodically. Trained model it deployed on ElasticSearch, which provides a benefit of fast response for recommendations as well as using it's rich query language to apply business filters to ranked lists of recommendations.
 docker-compose is utilized to deploy services.
 
 
-### Event Manager
-Service responsible for managing events and item properties.
-
-### Recommender
-Service responsible for providing recommendations.
-
-### Job Runner 
-Service conducts model training process, submits Spark jobs and allows to poll for status.
-
-### Spark 
-Computes model.
-
-### ElasticSearch
-Serves the model, returns recommendations by queries.
-
-### HDFS
-Source and target data source for Spark, stores events and intermediate representation of a model.
+Event Manager - Service responsible for managing events and item properties.
+Recommender - Service responsible for providing recommendations.
+Job Runner - Service conducts model training process, submits Spark jobs and allows to poll for status.
+Spark - Computes model.
+ElasticSearch - Serves the model, returns recommendations by queries.
+HDFS - Source and target data source for Spark, stores events and intermediate representation of a model.
 
 ## REST API
 In this section REST endpoints of the service are documented. 
