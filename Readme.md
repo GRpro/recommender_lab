@@ -35,41 +35,71 @@ Serves the model, returns recommendations by queries.
 Source and target data source for Spark, stores events and intermediate representation of a model.
 
 ## REST API
+In this section REST endpoints of the service are documented. 
+In the json representation fields marked in curlu braces `()` are optional.
 
 ### Event Manager
 Runs on port `5555`.
 
 #### Create event
-Object properties may be passed along with each event, if object has existing properties they are replaced.
+Register new user event in the system, the event will have been considered when model is trained.
+If *timestamp* field of an event isn't present the event is registered with time when request is made.
+If *objectProperties* field is defined the object *objectId* will be set to these properties, if object has existing properties they are replaced. That is useful when running recommender without existing dataset so item properties are populated along the way.
 
 *Request:*
 
 ```
 POST /api/events/createOne
+{
+  "subjectId": "<user_id>",
+  "objectId": "<item_id>",
+  ("timestamp": <number>,)
+  "indicator": "<type_of_action>",
+  ("objectProperties": {<item_properties_json>})
+}
 ```
 
 *Response:*
 
 ```
-
+Status code - 200
 ```
 
 
 #### Create events
+This endpoint allows register multiple events at a time.
 
 *Request:*
 
 ```
 POST /api/events/createMany
+[
+  {
+    "subjectId": "<user_id>",
+    "objectId": "<item_id>",
+    ("timestamp": <number>,)
+    "indicator": "<type_of_action>",
+    ("objectProperties": {<item_properties_json>})
+  },
+  {
+    "subjectId": "<user_id>",
+    "objectId": "<item_id>",
+    ("timestamp": <number>,)
+    "indicator": "<type_of_action>",
+    ("objectProperties": {<item_properties_json>})
+  },
+  ...
+]
 ```
 
 *Response:*
 
 ```
-
+Status code - 200
 ```
 
 #### Count all events
+Get count of all events in the system.
 
 *Request:*
 
@@ -80,40 +110,72 @@ POST /api/events/countAll
 *Response:*
 
 ```
-
+{
+  "number" : <number>
+}
+Status code - OK
 ```
 
 #### Count events by query
+Get count of all events matching query. *query* field is a valid [ElasticSearch query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html).
 
 *Request:*
 
 ```
 POST /api/events/countByQuery
+{
+  "query": {
+    "term" : { "objectId" : "5421" } 
+  }
+}
 ```
 
 *Response:*
 
 ```
-
+{
+  "number" : <number>
+}
+Status code - OK
 ```
 
 #### Get events by query
-
+Get events matching query. *query* field is a valid [ElasticSearch query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html).
 
 *Request:*
 
 ```
 POST /api/events/getByQuery
+{
+  "query": {
+    "term" : { "subjectId" : "2" } 
+  }
+}
 ```
 
 *Response:*
 
 ```
-
+[
+  {
+    "subjectId": "2",
+    "objectId": "325215",
+    "timestamp": 1552515374808,
+    "indicator": "view"
+  },
+  {
+    "subjectId": "2",
+    "objectId": "342816",
+    "timestamp": 1552515375917,
+    "indicator": "view"
+  },
+  ...
+]
+Status code - OK
 ```
 
 #### Delete all events
-
+Delete all events from the system. Returns number of deleted events.
 
 *Request:*
 
@@ -124,40 +186,77 @@ POST /api/events/deleteAll
 *Response:*
 
 ```
-
+{
+  "deleted": <number>
+}
+Status code - OK
 ```
 
 #### Delete events by query
-
+Delete events matching query. *query* field is a valid [ElasticSearch query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html). Returns number of deleted events.
 
 *Request:*
 
 ```
 POST /api/events/deleteAll
+{
+  "query": {
+    "range" : {
+      "timestamp" : {
+        "lte" : 1265276482312
+      }
+    }
+  }
+}
 ```
 
 *Response:*
 
 ```
-
+{
+  "deleted": <number>
+}
+Status code - 200
 ```
 
 #### Set object schema
-Set object schema or extend existing to add new fields but don't modify existing
+Set object schema or extend existing to add new fields but don't modify existing. This is optional API, every time you add new object system inferres schema. The json body is valid [ElasticSearch mapping under mappings.<index_name>.properties field](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html).
 
 *Request:*
 
 ```
 POST /api/objects/schema
+{
+  "field1": {
+    "type": "text",
+    "fields": {
+      "keyword": {
+        "type": "keyword",
+        "ignore_above": 256
+      }
+    }
+  },
+  "field2": {
+    "type": "text",
+    "fields": {
+      "keyword": {
+        "type": "keyword",
+        "ignore_above": 256
+      }
+    }
+  },
+  ...
+}
 ```
 
 *Response:*
 
 ```
-
+Status code - OK
 ```
 
 #### Get object schema
+Get set or inferred object schema.
 
 *Request:*
 
@@ -168,73 +267,128 @@ GET /api/objects/schema
 *Response:*
 
 ```
-
+{
+  "field1": {
+    "type": "text",
+    "fields": {
+      "keyword": {
+        "type": "keyword",
+        "ignore_above": 256
+      }
+    }
+  },
+  "field2": {
+    "type": "text",
+    "fields": {
+      "keyword": {
+        "type": "keyword",
+        "ignore_above": 256
+      }
+    }
+  },
+  ...
+}
+Status code - OK
 ```
 
 
 #### Update object
-Update or insert single object
+Update or insert single object. If *replace* is true new properties will completely replace existing, if it's false these new properties will be merged with existing one by one (add or replace).
 
 *Request:*
 
 ```
 POST /api/objects/updateById
+{
+  "objectId": "<item_id>",
+  "replace": <bool>,
+  "objectProperties": {<valid_json>}
+}
 ```
 
 *Response:*
 
 ```
-
+Status code - OK
 ```
 
 
 #### Update multiple objects
-Update or insert nultiple objects
+Update or insert multiple object properties.
 
 *Request:*
 
 ```
 POST /api/objects/updateMultiById
+[
+  {
+    "objectId": "<item_id>",
+    "replace": <bool>,
+    "objectProperties": {<valid_json>}
+  },
+  {
+    "objectId": "<item_id>",
+    "replace": <bool>,
+    "objectProperties": {<valid_json>}
+  },
+  ...
+]
 ```
 
 *Response:*
 
 ```
-
+Status code - OK
 ```
 
 #### Get object
-Get object by id
+Get object by id.
 
 *Request:*
 
 ```
 GET /api/objects/getById
+{
+  "objectId": "<item_id>"
+}
 ```
 
 *Response:*
 
 ```
-
+{
+  "field1": <bool>,
+  "field2": <number>,
+  "field3": "<string>"
+}
+Status code - 200
 ```
 
 #### Delete object
-Delete object by id
+Delete object by id. Returns number of deleted objects (0 or 1).
 
 *Request:*
 
 ```
 POST /api/objects/deleteById
+{
+  "field1": <bool>,
+  "field2": <number>,
+  "field3": "<string>"
+}
 ```
 
 *Response:*
 
 ```
-
+{
+  "deleted": <number>
+}
+Status code - 200
 ```
 
 #### Delete all objects
-Delete all objects preserving schema
+Delete all objects preserving schema. Returns number of deleted objects.
 
 *Request:*
 
@@ -245,40 +399,62 @@ POST /api/objects/deleteAll
 *Response:*
 
 ```
-
+{
+  "deleted": <number>
+}
+Status code - 200
 ```
 
 
 #### Delete objects by query
-Delete objects by query
+Delete objects by query. *query* field is a valid [ElasticSearch query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html). Object fields in a query should be prefixed with *properties.<field_name>*.
 
 *Request:*
 
 ```
 POST /api/objects/deleteByQuery
+{
+  "query": {
+    "term" : { "properties.<field_name>" : "<some_value>" } 
+  }
+}
 ```
 
 *Response:*
 
 ```
-
+{
+  "deleted": <number>
+}
+Status code - 200
 ```
 
-
-
 #### Set indicators
-Configure preference indicators for model
+Configure preference indicators for model. The first indicator is considered primary and model is targeted to predict events of primary indicator (e.g. purchase), when model is computed the events of other indicators are filtered, events which correlate with primary indicator are remained. Other indicators may be "view", "add to cart" etc.
 
 *Request:*
 
 ```
 POST /api/model
+{
+  "primaryIndicator": "<indicator_1>",
+  "secondaryIndicators": [
+    {
+      "name": "<indicator_2>" ,
+      "priority": 1
+    },
+    {
+      "name": "<indicator_3>" ,
+      "priority": 2
+    }
+  ]  
+}
 ```
 
 *Response:*
 
 ```
-
+Status code - 200
 ```
 
 #### Get indicators
@@ -293,7 +469,20 @@ GET /api/model
 *Response:*
 
 ```
-
+{
+  "primaryIndicator": "<indicator_1>",
+  "secondaryIndicators": [
+    {
+      "name": "<indicator_2>" ,
+      "priority": 1
+    },
+    {
+      "name": "<indicator_3>" ,
+      "priority": 2
+    }
+  ]  
+}
+Status code - 200
 ```
 
 ### Job Runner
