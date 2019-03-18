@@ -42,7 +42,7 @@ Modified cross-occurrence correlation algoritm from Apache Mahout alows to use a
 
 ## Architecture
 
-The recommender system implemented in this project uses Cross Occurrece Correlation algorithm which allows using multiple indicators effectively. 
+The recommender system implemented in this project uses Correlated Cross-Occurrence algorithm which allows using multiple indicators effectively. 
 
 Few links:
 - [Mahout CCO](http://mahout.apache.org/users/recommender/intro-cooccurrence-spark.html)
@@ -514,12 +514,17 @@ Status code - 200
 Runs on port `5556`.
 
 #### Train model
+Train new model using snapshot of current events in the system. Recommender can server the requests while the model is being trained.
+
 *Request:*
+
 ```
 POST /api/model/train
 No body
 ```
+
 *Response:*
+
 ```
 {
   "id": "export_events",
@@ -553,6 +558,8 @@ No body
 
 
 #### Get train model status
+Get status of the current process of model training. Response body contains hyerarchical structure which shows up completeness of the steps required to train model. Once the step is finished the field *finishedAt* appears.
+
 *Request:*
 ```
 GET /api/model/train
