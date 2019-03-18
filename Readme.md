@@ -1,7 +1,37 @@
 I created this project with the purpose of learning recommender systems and improve software design skills. Also I wanted to create something useful. Even though it's a pet project I believe it can be used to solve real information filtering problems which are commonly faced in the E-Commerce world. Feel free to contact me <span style="color:blue">*grigoriyroghkov@gmail.com*</span>.
 
+- [What is Recommender Lab](#what-is-recommender-lab)
+- [Architecture](#architecture)
+- [REST API](#rest-api)
+  - [Event Manager](#event-manager)
+	- [Create event](#create-event)
+	- [Create events](#create-events)
+	- [Count all events](#count-all-events)
+	- [Count events by query](#count-events-by-query)
+	- [Get events by query](#get-events-by-query)
+	- [Delete all events](#delete-all-events)
+	- [Delete events by query](#delete-events-by-query)
+	- [Set object schema](#set-object-schema)
+	- [Get object schema](#get-object-schema)
+	- [Update object](#update-object)
+	- [Update multiple objects](#update-multiple-objects)
+	- [Get object](#get-object)
+	- [Delete object](#delete-object)
+	- [Delete all objects](#delete-all-objects)
+	- [Delete objects by query](#delete-objects-by-query)
+	- [Set indicators](#set-indicators)
+	- [Get indicators](#get-indicators)
+  - [Job Runner](#job-runner)
+  	- [Train model](#train-model)
+	- [Get train model status](#get-train-model-status)
+  - [Recommender](#recommender)
+	- [Create recommendations](#create-recommendations)
+	- [Delete recommendations and object data](#delete-recommendations-and-object-data)
+- [User guide](#user-guide)
+  - [Test with retailrocket dataset](#test-with-retailrocket-dataset)
 
-## What is Recommender Lab ?
+
+## What is Recommender Lab
 
 Recommender systems play a major role in today's ecommerce industry. Recommender systems suggest items to users such as books, movies, videos, electronic products and many other products in general. Creating a new recommender is costly so companies try to use existing solutions. 
 
@@ -628,6 +658,10 @@ Status code OK - recommendations deleted
 
 Project contains deployment scripts to run on docker-compose locally, you need 9GB of RAM to make the thing working. 
 The default deployment consists of the following services.
+
+`./dev/start_dev_env.sh` - rebuild docker images and start all services
+`./dev/stop_dev_env.sh` - stop all services
+`./dev/follow_logs.sh` - see logs of running services
 
 ```
 dev_spark-slave_2
