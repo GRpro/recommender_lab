@@ -8,7 +8,7 @@ Recommender systems play a major role in today's ecommerce industry. Recommender
 This project aims to provide a RESTful service which accepts events' data and items' properties and provide recomendations. 
 Item consists of a set of properties which can be configured. Event means some action made by user towards the item, this action should have a preference evidence.
 
-Modified cross-occurrence correlation algoritm from Apache Mahout alows to use any number of indicators (buy, add to cart, view etc.) to predict user preferences. Model is used to 
+Modified cross-occurrence correlation algoritm from Apache Mahout alows to use any number of indicators (buy, add to cart, view etc.) to predict user preferences.
 
 ## Architecture
 
